@@ -30,9 +30,9 @@ erDiagram
   }
 
   cell_values {
-    string dataset_row_id PK_FK
+    string dataset_row_id PK, FK
     string period PK
-    float value
+    real value
   }
 
   cleaning_sessions {
@@ -51,8 +51,8 @@ erDiagram
     string pattern
     string dataset_row_id FK
     string period
-    float value_before
-    float value_after
+    real value_before
+    real value_after
     datetime created_at
   }
 ```
