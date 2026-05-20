@@ -12,8 +12,12 @@ out/
 
 # Runtime data
 uploads/
+backend/data/*.db
 
 # OS / IDE
 .DS_Store
 .idea/
 .vscode/
+
+# Cursor (local agent rules — not shared via git)
+.cursor/

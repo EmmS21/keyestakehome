@@ -9,6 +9,10 @@ uvicorn backend.app.main:app --reload
 
 Health check: `GET http://127.0.0.1:8000/health`
 
+Unit tests: `pytest backend/tests/unit -v` (from repo root, venv active)
+
+Upload: `POST http://127.0.0.1:8000/datasets` (multipart field `file`)
+
 ## Layout
 
 | Path | Purpose |
@@ -22,3 +26,5 @@ Health check: `GET http://127.0.0.1:8000/health`
 | `tests/integration/` | Upload → pipeline → audit flows |
 
 Uploaded CSVs go to `uploads/` at repo root (gitignored).
+
+Build plan and unit-test intent: [`tobuild.md`](tobuild.md).

@@ -40,8 +40,6 @@ erDiagram
   cleaning_sessions {
     string id
     string dataset_id
-    string current_step
-    string completed_steps
     datetime created_at
     datetime updated_at
   }
@@ -107,8 +105,8 @@ stateDiagram-v2
   end note
 
   note right of ReadyForExport
-    All steps done
-    Export uses cell_values
+    User exports when ready
+    Uses cell_values
   end note
 ```
 
@@ -138,13 +136,22 @@ sequenceDiagram
 
 ```mermaid
 flowchart TB
-  CS[cleaning_sessions completed_steps]
   AL[audit_log_entries]
   Submit --> SID[submit_id]
   SID --> AL
   AL --> SG[group by submit_id]
   pattern --> AL
 ```
+
+## UI vs database
+
+| Concern | Stored in DB | Stored in frontend |
+|---------|--------------|-------------------|
+| Which tab is open | No | `activePattern` (nullable) |
+| Which patterns have issues | No (computed) | `patternCounts` from `GET .../proposals` `total_count` |
+| Checkbox selection | No | Per active pattern |
+| Working cell values | `cell_values` | — |
+| Change history | `audit_log_entries` | — |
 
 ## API models
 
@@ -225,4 +232,4 @@ classDiagram
 | `dimension_*` | `str \| None` | `TEXT` | Nullable |
 | `period` | `str` | `TEXT` | `YYYYMM` |
 | `value`, `value_before`, `value_after` | `float` | `REAL` | |
-| `current_step`, `pattern` | `CleaningPattern` | `TEXT` | |
+| `pattern` (audit only) | `CleaningPattern` | `TEXT` | Which anomaly type was accepted |

@@ -17,5 +17,6 @@ Known boundaries of the design. Intentional for scope, not oversights.
 
 - One analyst per dataset session; no collaboration.
 - Detection rules fixed by the brief — not user-configurable.
+- Analyst may open and accept patterns in any order; sidebar order is display-only. Which tab is active is frontend state, not stored on `cleaning_sessions`.
 
 Full product assumptions: [`architecture.md`](../architecture.md) §2.2–2.4.

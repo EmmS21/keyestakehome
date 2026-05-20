@@ -49,9 +49,9 @@ Diligence data in this space ([Keye](https://www.keye.co/) — raw deal files �
 2. **Deal-scale by default** — per §2.2; not optimized for tiny demo files only.
 3. **Schema is stable per file** — leading columns are dimensions (`A`, `B`, `C`, …); remaining columns are periods (`YYYYMM` or similar labels).
 4. **Each row is independent** — detectors run per row; cross-row rules out of scope ([`docs/limitations.md`](docs/limitations.md)).
-5. **User understands pipeline order** — we show order in the nav; we don’t need a tutorial on “why negatives before refunds.”
+5. **Pipeline order is visible, not enforced** — sidebar lists patterns in recommended order (negatives → refunds → double booking); the analyst may open and accept **any** pattern in any order. Fixing cells still changes what other detectors see on the working copy.
 6. **“Clean” is idempotent for a finished dataset** — re-running on already-cleaned data may yield zero proposals (empty state is valid).
-7. **One anomaly at a time in the UI** — the user views and acts on exactly **one** pattern per screen (Negative values *or* Refunds *or* Double booking). No multi-select in the sidebar; other patterns are hidden until their step.
+7. **One anomaly at a time in the UI** — the user views exactly **one** pattern when they choose a tab. Default: **no tab selected** (no Before/After). Tabs stay visible; the frontend indicates which patterns have issues (e.g. color/badge from `total_count`).
 
 ### 2.4 Non-negotiables (scale)
 
@@ -84,7 +84,7 @@ Row {
 ```
 
 - **Numeric columns** = all period columns (not dimensions).
-- **Working copy** = mutable dataset updated only when the user submits accepts for the current pattern.
+- **Working copy** = mutable dataset updated only when the user submits accepts for a pattern (whichever tab they used).
 - **Original upload** = immutable reference for audit (“before” at upload time; per-step “before” is state at step entry).
 
 ### 3.2 Sample data
@@ -105,33 +105,29 @@ All detection rules come from the brief. We **do not** invent or document altern
 | **Refunds** | Any **N** consecutive periods where **sum == 0** | Set those N cells to `0` (netting out) |
 | **Double booking** | `avg(M_i, M_{i+1}) == M_i / 2` (signature: spike + empty/zero neighbor) | Replace both cells with their average; **sum preserved** |
 
-**Note:** Refund vs negative is a **detector distinction**, not something the user configures. Order in the pipeline ensures negatives are resolved (or not) before refund detection runs on the current working copy.
+**Note:** Refund vs negative is a **detector distinction**, not something the user configures. Detectors always run on the **current** working copy, so accepted fixes on one pattern affect proposals on another.
 
-### 4.1 Pipeline order (non-negotiable for correctness)
+### 4.1 Pipeline order (data dependency, not navigation)
 
-From the diagram and dependency discussion:
+Recommended **sidebar order** (for display only):
 
 ```
-Upload → Working copy
-  → Step 1: Negative values
-  → Step 2: Refunds
-  → Step 3: Double bookings   (and any “final” pass if needed)
-  → Done / export
+Negative values → Refunds → Double booking
 ```
 
-**Why order matters (example from diagram):**
+**Why order still matters for data (example from diagram):**
 
-- If `-200` is accepted → `0` before refunds run, a pair like `200` + `-200` may **no longer** sum to zero → refund proposal **disappears**.
-- If negatives are **not** accepted, refund detector still sees the offsetting pair.
+- If `-200` is accepted → `0`, a pair like `200` + `-200` may **no longer** sum to zero → refund proposals for that row can **disappear**.
+- The analyst may still open **Refunds** before **Negatives**; the server does not block it. They see proposals based on whatever is in `cell_values` today.
 
-### 4.1.1 One anomaly at a time (UI rule)
+### 4.1.1 Navigation and one anomaly at a time (UI)
 
-- Sidebar lists all patterns in pipeline order, but the user can only **open one** at a time.
-- The main panel shows proposals for **that pattern only** — no combined view, no filtering two anomaly types at once.
-- Backend runs the detector for the **active** pattern only when rendering that step.
-- After **Submit**, the user moves to the next pattern (or continues if empty). Completed steps stay in the sidebar for status; clicking back is out of scope for v1.
-
-Later steps use the working copy from earlier **submitted** accepts (and skips).
+- Sidebar lists all patterns (in recommended order). **Nothing is selected by default.**
+- User **clicks** a tab to open that pattern → main panel loads Before/After for that pattern only.
+- **Submit does not change tabs.** After Submit, the UI clears the review panel and leaves tabs unselected (default).
+- **Submit with none checked:** working copy unchanged; show a short “nothing changed” message; no Before/After until they pick a tab again.
+- Frontend uses `total_count` per pattern (from proposals API) for tab styling (e.g. color when issues exist).
+- Backend serves `GET .../proposals?pattern=...` for **any** pattern; no server-side “current step” or auto-advance.
 
 ### 4.2 What the user checks off (one checkbox per table row)
 
@@ -155,21 +151,21 @@ Each proposal stores: which dataset row, which cells change, before/after values
 
 1. User uploads file(s) → appear in a **file explorer** list.
 2. User selects a dataset → **Clean** (no need to know anomalies exist upfront).
-3. Tool loads data, initializes working copy, opens cleaning workspace.
-4. Sidebar: **Negative values** (first). Main area: **Before | After** for a **page of proposals** (`total_count` shows how many exist).
-5. User selects proposals (subset / all / none) via **checkboxes** on each row (✕ = checked, as in the diagram) plus **Select all** / **Select none**.
-6. User **Submit** → apply accepted proposals to working copy → **success feedback** → advance or unlock next pattern.
-7. Repeat for **Refunds**, then **Double bookings**.
-8. User can leave and return; **audit log** shows completed steps and cell-level changes.
+3. Tool loads data, initializes working copy, opens cleaning workspace. Sidebar shows all patterns; tabs may show which have issues; **no tab selected** yet.
+4. User **clicks** e.g. **Negative values** → main area: **Before | After** for a **page of proposals** (`total_count` shows how many exist).
+5. User selects proposals (subset / all / none) via **checkboxes** on each row plus **Select all** / **Select none**.
+6. User **Submit** → apply accepted proposals to working copy → feedback → review panel clears; tabs unselected (user picks next tab when ready).
+7. User may click **Refunds** or **Double booking** in any order; repeat review/submit.
+8. User can leave and return; **audit log** shows cell-level changes per pattern.
 
 ### 5.2 Empty / complete states
 
-- **No proposals for current pattern:** show calm empty state (“Nothing to clean” for this step) + allow **Continue** to next pattern.
-- **All patterns done:** working copy is final; optional download + audit summary.
+- **No proposals for a pattern (when tab open):** calm empty state on that tab (“Nothing to clean for this pattern”).
+- **Export:** available when the user wants the current working copy (not gated on “all steps done” in the DB).
 
 ### 5.3 Reject / partial accept
 
-- **Submit with none selected** = skip applying fixes for this pattern (working copy unchanged for this step); still record audit entry “step completed, 0 accepted”).
+- **Submit with none selected** = no cell updates; UI “nothing changed”; working copy unchanged; **no** auto-switch tab; optional refresh of that pattern’s `total_count`.
 - **Subset** = only selected proposals applied.
 
 ---
@@ -182,7 +178,7 @@ Each proposal stores: which dataset row, which cells change, before/after values
 |---------|-----|
 | **File upload + explorer** | Entry point; matches “select dataset then clean” |
 | **Cleaning workspace** | Single place for before/after review |
-| **Pattern sidebar (ordered)** | One anomaly at a time; pipeline order |
+| **Pattern sidebar (ordered)** | All tabs visible; user picks; badges from `total_count` |
 | **Before / After comparison** | User validates proposals with context |
 | **Highlight affected cells** | “See the option to see” — visual diff |
 | **Proposal list (paginated)** | Context without rendering every issue; `total_count` shows full scope |
@@ -200,7 +196,7 @@ Each proposal stores: which dataset row, which cells change, before/after values
 | **Row context in proposals** | Show dimension columns so “Dog / China / Line” is identifiable |
 | **Counts per pattern** | “12 proposals” in sidebar without loading all rows |
 | **Export cleaned file** | Closes the loop for analysts |
-| **Step status indicators** | Sidebar: pending / in progress / done |
+| **Tab issue indicators** | Sidebar: color/badge when `total_count` > 0 |
 
 ### 6.3 Won’t build in v1 (document as assumptions)
 
@@ -310,12 +306,10 @@ cell_values (
   PRIMARY KEY (dataset_row_id, period)
 )
 
--- One cleaning run per open of the tool
+-- One cleaning run per open of the tool (which tab is active is UI-only)
 cleaning_sessions (
   id              TEXT PRIMARY KEY,
   dataset_id      TEXT NOT NULL REFERENCES datasets(id),
-  current_step    TEXT NOT NULL,  -- "negatives" | "refunds" | "double_booking" | "done"
-  completed_steps JSON NOT NULL,  -- ["negatives", ...]
   created_at      TIMESTAMPTZ NOT NULL,
   updated_at      TIMESTAMPTZ NOT NULL
 )
@@ -353,7 +347,7 @@ onSubmit(sessionId, pattern, selectedProposalIds):
          - read value_before from cell_values
          - UPDATE cell_values SET value = value_after WHERE (row_id, period)
          - INSERT audit_log_entries (..., submit_id, value_before, value_after)
-  5. UPDATE cleaning_sessions (completed_steps, current_step, updated_at)
+  5. UPDATE cleaning_sessions SET updated_at = now()
   6. COMMIT
   7. Return { submitId, changes[] } — only cells that were updated (see §8.4)
 ```
@@ -419,7 +413,7 @@ Intent only. Server resolves before/after from stored proposals.
 ### 8.6 Persistence & resume
 
 - **SQLite** (or Postgres) for tables above; original CSV on disk.
-- On reopen: read `cleaning_sessions.current_step`, serve proposals for that step from current `cell_values`.
+- On reopen: resume `cleaning_sessions` for the dataset; frontend prefetches `total_count` per pattern; no tab selected until the user clicks.
 - Audit UI: `GET /sessions/:id/audit` → paginated `audit_log_entries` (group by `submit_id` in UI if needed).
 
 Enough for an analyst returning a week later: audit shows pattern, row, period, before → after, and submit time.
@@ -442,7 +436,7 @@ Enough for an analyst returning a week later: audit shows pattern, row, period, 
 
 ## 10. Tech stack 
 
-- **Frontend:** React (or Next.js) — tables + sidebar + light state
+- **Frontend:** React (or Next.js) — tables + sidebar + client state (`activePattern`, pattern counts, selection)
 - **Backend:** Node or Python — CSV parse, detectors, persistence
 - **Storage:** SQLite + file store for uploads
 
@@ -462,13 +456,15 @@ Enough for an analyst returning a week later: audit shows pattern, row, period, 
 |-------|----------|
 | **User** | PE diligence analyst only |
 | **Selection** | Checkbox per dataset row + Select all / none |
-| **One anomaly at a time** | Sidebar + main panel show a single pattern; no multi-filter |
+| **One anomaly at a time** | Main panel shows one pattern when a tab is selected; default none selected |
+| **Navigation** | User clicks tabs; Submit does not auto-switch; any pattern may be accepted in any order |
+| **Tab indicators** | Frontend uses `total_count` per pattern (not `completed_steps` in DB) |
 | **Detection rules** | Use brief as-is (negatives, refunds, double booking); no redefinition here |
 | **State + history** | `cell_values` = materialized working copy; `audit_log_entries` = append-only deltas |
 | **Scale** | §2.2 data nature → §2.4 non-negotiables (stream ingest, chunk detectors, paginate API) |
 | **Optimization** | Writes + transfer: patch cells; API sends/receives deltas only |
 | **Accept** | In: `proposalIds`. Out: `{ submitId, changes[] }`. Server applies updates |
-| **Re-clean a step** | v1: forward only; no going back to edit a completed step |
+| **Re-clean a step** | v1: no dedicated “reopen completed step” flow; user can click a tab again and accept new fixes if proposals still exist |
 
 ---
 
@@ -481,7 +477,7 @@ Enough for an analyst returning a week later: audit shows pattern, row, period, 
 5. Before/After proposal card + submit + feedback  
 6. Refund detector (on working copy)  
 7. Double booking detector  
-8. Ordered sidebar + step gating  
+8. Sidebar + tab counts/badges + manual navigation  
 9. Audit log UI + export  
 
 ---

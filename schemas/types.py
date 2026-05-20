@@ -12,7 +12,7 @@ class CleaningPattern(str, Enum):
     DONE = "done"
 
 
-# Ordered pipeline for detectors and sidebar (excludes DONE)
+# Sidebar display order only — not enforced on the server (any pattern may be opened/accepted)
 PIPELINE_STEPS: tuple[CleaningPattern, ...] = (
     CleaningPattern.NEGATIVES,
     CleaningPattern.REFUNDS,

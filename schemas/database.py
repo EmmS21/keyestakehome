@@ -54,17 +54,12 @@ class CellValue(BaseModel):
 
 
 class CleaningSession(BaseModel):
-    """Workflow state for one cleaning run on a dataset."""
+    """Cleaning run for a dataset. Which anomaly tab is active lives in the UI only."""
 
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
     dataset_id: UUID
-    current_step: CleaningPattern
-    completed_steps: list[CleaningPattern] = Field(
-        default_factory=list,
-        description="Patterns already submitted (forward-only v1)",
-    )
     created_at: datetime
     updated_at: datetime
 
