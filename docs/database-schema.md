@@ -4,25 +4,27 @@ Persisted tables and API DTOs. Behavior and scale: [`architecture.md`](../archit
 
 ## Entity-relationship
 
+Composite PK on `cell_values`: `(dataset_row_id, period)`. Keys shown on relationship lines only (GitHub Mermaid does not reliably render PK/FK on attributes).
+
 ```mermaid
 erDiagram
   datasets ||--o{ dataset_rows : contains
-  datasets ||--o{ cleaning_sessions : "cleaned via"
-  dataset_rows ||--o{ cell_values : "has cells"
-  cleaning_sessions ||--o{ audit_log_entries : "change log"
-  dataset_rows ||--o{ audit_log_entries : "which row"
+  datasets ||--o{ cleaning_sessions : cleaned_via
+  dataset_rows ||--o{ cell_values : has_cells
+  cleaning_sessions ||--o{ audit_log_entries : change_log
+  dataset_rows ||--o{ audit_log_entries : which_row
 
   datasets {
-    string id PK
+    string id
     string name
     datetime uploaded_at
     string original_path
-    json period_columns
+    string period_columns
   }
 
   dataset_rows {
-    string id PK
-    string dataset_id FK
+    string id
+    string dataset_id
     int row_index
     string dimension_a
     string dimension_b
@@ -30,29 +32,29 @@ erDiagram
   }
 
   cell_values {
-    string dataset_row_id PK, FK
-    string period PK
-    real value
+    string dataset_row_id
+    string period
+    number value
   }
 
   cleaning_sessions {
-    string id PK
-    string dataset_id FK
+    string id
+    string dataset_id
     string current_step
-    json completed_steps
+    string completed_steps
     datetime created_at
     datetime updated_at
   }
 
   audit_log_entries {
-    string id PK
-    string session_id FK
+    string id
+    string session_id
     string submit_id
     string pattern
-    string dataset_row_id FK
+    string dataset_row_id
     string period
-    real value_before
-    real value_after
+    number value_before
+    number value_after
     datetime created_at
   }
 ```
@@ -61,28 +63,28 @@ erDiagram
 
 ```mermaid
 flowchart TB
-  subgraph disk["Immutable (disk)"]
-    CSV["original_path — CSV never edited"]
+  subgraph disk["Immutable disk"]
+    CSV["original_path CSV"]
   end
 
   subgraph db["Database"]
-    meta["datasets · dataset_rows"]
+    meta["datasets and dataset_rows"]
     working["cell_values"]
     workflow["cleaning_sessions"]
     audit["audit_log_entries"]
   end
 
   subgraph runtime["Computed"]
-    prop["Proposal · ProposalsResponse"]
+    prop["Proposal and ProposalsResponse"]
     det["Detectors"]
   end
 
-  CSV -->|"upload"| working
+  CSV -->|upload| working
   meta --> working
   working --> det
   det --> prop
-  prop -->|"POST accept"| working
-  prop -->|"POST accept"| audit
+  prop -->|POST accept| working
+  prop -->|POST accept| audit
   workflow -.-> prop
 ```
 
@@ -90,20 +92,22 @@ flowchart TB
 
 ```mermaid
 stateDiagram-v2
-  [*] --> Uploaded: ingest CSV
-  Uploaded --> InProgress: accept fixes
-  InProgress --> InProgress: more accepts
-  InProgress --> ReadyForExport: all steps done
+  [*] --> Uploaded
+  Uploaded --> InProgress
+  InProgress --> ReadyForExport
 
   note right of Uploaded
-    Matches CSV; file on disk unchanged
+    Ingest CSV
+    Matches file on disk
   end note
 
   note right of InProgress
+    Accept fixes
     Mix of cleaned and untouched cells
   end note
 
   note right of ReadyForExport
+    All steps done
     Export uses cell_values
   end note
 ```
@@ -112,19 +116,19 @@ stateDiagram-v2
 
 ```mermaid
 sequenceDiagram
-  actor Analyst
+  participant Analyst
   participant API
   participant Detectors
   participant CV as cell_values
   participant Audit as audit_log_entries
 
-  Analyst->>API: GET /proposals
+  Analyst->>API: GET proposals
   API->>CV: read grid
   API->>Detectors: run pattern
   Detectors-->>API: suggestions
-  API-->>Analyst: Proposal[]
+  API-->>Analyst: proposals list
 
-  Analyst->>API: POST /accept
+  Analyst->>API: POST accept
   API->>CV: UPDATE changed cells
   API->>Audit: INSERT per changed cell
   API-->>Analyst: AcceptResponse
@@ -134,12 +138,12 @@ sequenceDiagram
 
 ```mermaid
 flowchart TB
-  CS["cleaning_sessions.completed_steps"]
-  AL["audit_log_entries"]
-  Submit --> SID["submit_id"]
+  CS[cleaning_sessions completed_steps]
+  AL[audit_log_entries]
+  Submit --> SID[submit_id]
   SID --> AL
-  AL --> SG["GROUP BY submit_id"]
-  pattern["pattern"] --> AL
+  AL --> SG[group by submit_id]
+  pattern --> AL
 ```
 
 ## API models
@@ -148,60 +152,58 @@ Not persisted. `Proposal.id` is a step-scoped accept key, not a DB PK.
 
 ```mermaid
 classDiagram
-  direction TB
-
   class CellChange {
-    +str period
-    +float value_before
-    +float value_after
+    period
+    value_before
+    value_after
   }
 
   class Proposal {
-    +str id
-    +CleaningPattern pattern
-    +UUID dataset_row_id
-    +int row_index
-    +list~CellChange~ changes
+    id
+    pattern
+    dataset_row_id
+    row_index
+    changes
   }
 
   class ProposalsResponse {
-    +CleaningPattern pattern
-    +list~Proposal~ proposals
-    +int total_count
-    +int limit
-    +int offset
+    pattern
+    proposals
+    total_count
+    limit
+    offset
   }
 
   class AcceptRequest {
-    +list~str~ proposal_ids
+    proposal_ids
   }
 
   class AppliedCellChange {
-    +UUID dataset_row_id
-    +str period
-    +float value_before
-    +float value_after
+    dataset_row_id
+    period
+    value_before
+    value_after
   }
 
   class AcceptResponse {
-    +UUID submit_id
-    +list~AppliedCellChange~ changes
+    submit_id
+    changes
   }
 
   class AuditLogEntryView {
-    +UUID id
-    +UUID submit_id
-    +CleaningPattern pattern
-    +UUID dataset_row_id
-    +str period
-    +float value_before
-    +float value_after
-    +datetime created_at
+    id
+    submit_id
+    pattern
+    dataset_row_id
+    period
+    value_before
+    value_after
+    created_at
   }
 
   class AuditLogResponse {
-    +list~AuditLogEntryView~ entries
-    +int total_count
+    entries
+    total_count
   }
 
   Proposal *-- CellChange
