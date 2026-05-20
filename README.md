@@ -27,7 +27,7 @@ keyestakehome/
 ├── requirements.txt         # Python deps (backend + schemas)
 │
 ├── docs/
-│   ├── data-model.md        # ER diagram, persisted vs computed
+│   ├── database-schema.md   # ER diagram, storage layers, API DTOs
 │   └── limitations.md       # v1 scope boundaries
 │
 ├── schemas/                 # Pydantic: DB tables + API DTOs
@@ -64,5 +64,5 @@ keyestakehome/
 | Doc | Contents |
 |-----|----------|
 | [`architecture.md`](architecture.md) | Persona, scale rules, detectors, API surface |
-| [`docs/data-model.md`](docs/data-model.md) | Database ER diagram and semantics |
+| [`docs/database-schema.md`](docs/database-schema.md) | ER diagram, storage/flow views, field mapping |
 | [`docs/limitations.md`](docs/limitations.md) | Intentional v1 boundaries |

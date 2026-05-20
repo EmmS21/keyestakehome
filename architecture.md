@@ -277,7 +277,7 @@ Original upload stays **immutable** on disk for reference; working state lives i
 
 ### 8.2 Data model (tables)
 
-Full ER diagram, field types, and business rationale: [`docs/data-model.md`](docs/data-model.md).  
+Full ER diagram, field types, and business rationale: [`docs/database-schema.md`](docs/database-schema.md).  
 Pydantic schemas: [`schemas/`](schemas/).
 
 ```sql
