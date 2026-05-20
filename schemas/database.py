@@ -1,0 +1,85 @@
+"""
+Pydantic models aligned with persisted tables (§8.2 in architecture.md).
+
+Use these for: DB row validation, repository layer, migrations documentation.
+"""
+
+from datetime import datetime
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from schemas.types import CleaningPattern
+
+
+class Dataset(BaseModel):
+    """Uploaded file metadata."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    name: str = Field(min_length=1, description="Original filename")
+    uploaded_at: datetime
+    original_path: str = Field(description="Immutable CSV on disk or object store key")
+    period_columns: list[str] = Field(
+        min_length=1,
+        description='Month headers in order, e.g. ["202401","202402"]',
+    )
+
+
+class DatasetRow(BaseModel):
+    """One CSV line — dimensions identify the transaction."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    dataset_id: UUID
+    row_index: int = Field(ge=0, description="0-based line number in original file")
+    dimension_a: str | None = None
+    dimension_b: str | None = None
+    dimension_c: str | None = None
+
+
+class CellValue(BaseModel):
+    """One numeric cell in the working (cleaned) grid."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    dataset_row_id: UUID
+    period: str = Field(
+        min_length=1,
+        description="Period column label (YYYYMM), matches period_columns entry",
+    )
+    value: float = Field(description="Current revenue value after any accepted fixes")
+
+
+class CleaningSession(BaseModel):
+    """Workflow state for one cleaning run on a dataset."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    dataset_id: UUID
+    current_step: CleaningPattern
+    completed_steps: list[CleaningPattern] = Field(
+        default_factory=list,
+        description="Patterns already submitted (forward-only v1)",
+    )
+    created_at: datetime
+    updated_at: datetime
+
+
+class AuditLogEntry(BaseModel):
+    """One cell changed. Rows sharing submit_id = one Submit click."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    session_id: UUID
+    submit_id: UUID = Field(description="Groups all cells changed in one Submit")
+    pattern: CleaningPattern
+    dataset_row_id: UUID
+    period: str
+    value_before: float
+    value_after: float
+    created_at: datetime

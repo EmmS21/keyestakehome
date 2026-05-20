@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# Node / Next.js (when frontend is initialized)
+node_modules/
+.next/
+out/
+
+# Runtime data
+uploads/
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
