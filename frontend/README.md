@@ -7,6 +7,32 @@ Folders are laid out for the **App Router** convention. You do **not** need `cre
 
 Point the dev server at the FastAPI backend (e.g. `NEXT_PUBLIC_API_URL=http://127.0.0.1:8000`).
 
+## Run locally
+
+```bash
+# Terminal 1 — API (repo root)
+uvicorn backend.app.main:app --reload
+
+# Terminal 2 — UI
+cd frontend
+cp .env.local.example .env.local   # optional if default URL is fine
+npm install
+npm run dev
+```
+
+Open http://127.0.0.1:3000
+
+## E2E tests (Playwright)
+
+Requires the API running on port 8000.
+
+```bash
+cd frontend
+npm install
+npx playwright install chromium
+npm run test:e2e
+```
+
 ## Layout
 
 | Path | Purpose |

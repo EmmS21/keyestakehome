@@ -1,0 +1,123 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #e8e8e8;
+  color: #222;
+  line-height: 1.4;
+}
+
+.app-header {
+  border-bottom: 2px solid #333;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fafafa;
+}
+
+.app-title {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.btn {
+  border: 2px solid #333;
+  background: #fff;
+  padding: 6px 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: #333;
+  color: #fff;
+}
+
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 0.65rem;
+}
+
+.upload-zone {
+  margin: 20px;
+  border: 2px dashed #666;
+  padding: 40px;
+  text-align: center;
+  background: #f9f9f9;
+  color: #666;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.upload-zone.loading {
+  border-style: solid;
+  background: #eee;
+  cursor: wait;
+}
+
+.banner {
+  margin: 0 20px 12px;
+  padding: 10px 14px;
+  border: 2px solid #333;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.banner.error {
+  background: #f0f0f0;
+  border-color: #900;
+}
+
+table.data {
+  width: calc(100% - 40px);
+  margin: 0 20px 20px;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+table.data th,
+table.data td {
+  border: 1px solid #333;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+table.data th {
+  background: #ddd;
+  font-weight: 700;
+}
+
+.empty-message,
+.loading-indicator {
+  margin: 20px;
+  text-align: center;
+  color: #888;
+  font-size: 0.85rem;
+}
+
+.workspace-shell {
+  margin: 20px;
+  padding: 40px;
+  background: #fff;
+  border: 2px solid #333;
+  text-align: center;
+}
+
+.link {
+  color: #222;
+}

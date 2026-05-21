@@ -17,6 +17,14 @@ class NoPeriodColumnsError(IngestError):
     """No YYYYMM period columns found in the header."""
 
 
+class DuplicateDatasetNameError(IngestError):
+    """A dataset with this filename already exists."""
+
+    def __init__(self, name: str) -> None:
+        self.name = name
+        super().__init__(f'A dataset named "{name}" is already uploaded')
+
+
 class DatasetNotFoundError(Exception):
     """No dataset exists for the given id."""
 

@@ -1,5 +1,7 @@
 """Unit tests for dataset listing (GET /datasets brain)."""
 
+import pytest
+
 from backend.app import datasets as datasets_logic
 
 VALID_CSV = """\
@@ -48,3 +50,23 @@ def test_list_datasets_returns_summary_with_row_count_after_ingest(
         "202405",
     ]
     assert summary.row_count == 5
+
+
+def test_ingest_rejects_duplicate_dataset_name(tmp_db, tmp_uploads, tmp_path):
+    from backend.app.exceptions import DuplicateDatasetNameError
+
+    conn, _ = tmp_db
+    csv_file = _write_csv(tmp_path, "sample.csv", VALID_CSV)
+    datasets_logic.ingest_dataset(
+        conn,
+        uploads_dir=tmp_uploads,
+        source_path=csv_file,
+        name="sample.csv",
+    )
+    with pytest.raises(DuplicateDatasetNameError):
+        datasets_logic.ingest_dataset(
+            conn,
+            uploads_dir=tmp_uploads,
+            source_path=csv_file,
+            name="sample.csv",
+        )

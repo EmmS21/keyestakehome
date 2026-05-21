@@ -13,6 +13,7 @@ from backend.app.db.connection import connect
 from backend.app.dependencies import get_db_path, get_uploads_dir
 from backend.app.exceptions import (
     DatasetNotFoundError,
+    DuplicateDatasetNameError,
     EmptyDatasetError,
     IngestError,
     InvalidPeriodValueError,
@@ -113,6 +114,8 @@ async def upload_dataset(
                 "value": exc.raw_value,
             },
         ) from exc
+    except DuplicateDatasetNameError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except IngestError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     finally:

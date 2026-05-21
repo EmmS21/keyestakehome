@@ -11,6 +11,7 @@ from pathlib import Path
 from uuid import UUID, uuid4
 
 from backend.app.exceptions import (
+    DuplicateDatasetNameError,
     EmptyDatasetError,
     InvalidPeriodValueError,
     NoDataRowsError,
@@ -152,6 +153,8 @@ def ingest_dataset(
     name: str,
 ) -> Dataset:
     """Parse CSV, store immutable copy, and persist grid rows + cell_values."""
+    if dataset_name_exists(conn, name):
+        raise DuplicateDatasetNameError(name)
     parsed = parse_csv(source_path)
     dataset_id = uuid4()
     uploaded_at = datetime.now(UTC)
@@ -188,6 +191,14 @@ def row_count(conn: sqlite3.Connection, dataset_id: UUID) -> int:
         (str(dataset_id),),
     ).fetchone()
     return int(result["c"])
+
+
+def dataset_name_exists(conn: sqlite3.Connection, name: str) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM datasets WHERE name = ? LIMIT 1",
+        (name,),
+    ).fetchone()
+    return row is not None
 
 
 def list_datasets(conn: sqlite3.Connection) -> list[DatasetSummaryRecord]:

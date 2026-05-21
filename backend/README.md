@@ -27,7 +27,7 @@ FastAPI generates interactive docs from route handlers and Pydantic models in `s
 |--------|------|--------|-------------|
 | `GET` | `/health` | 200 | Liveness probe |
 | `GET` | `/datasets` | 200 | List uploaded datasets (`id`, `name`, `period_columns`, `row_count`, `uploaded_at`) |
-| `POST` | `/datasets` | 201 | Upload CSV — multipart field **`file`**; ingests grid into SQLite + copy under `uploads/` |
+| `POST` | `/datasets` | 201 / 409 | Upload CSV — multipart field **`file`**; **409** if `name` already exists |
 | `POST` | `/datasets/{dataset_id}/sessions` | 201 / 200 | **Create** or **resume** cleaning session (one session per dataset) |
 | `GET` | `/sessions/{session_id}/steps/{pattern}/proposals` | 200 | Paginated proposals + `total_count`. Query: `limit` (default 10), `offset` (default 0) |
 | `POST` | `/sessions/{session_id}/steps/{pattern}/accept` | 200 | Apply selected proposals. Body: `proposal_ids`, `session_updated_at` |
