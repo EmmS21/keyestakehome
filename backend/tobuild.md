@@ -8,7 +8,7 @@ Run unit tests: `pytest backend/tests/unit -v`
 
 ## Build progress
 
-Last updated after `POST /sessions/{id}/steps/{pattern}/accept`.
+Last updated after `GET /sessions/{id}/audit`.
 
 ### API endpoints
 
@@ -18,7 +18,6 @@ Last updated after `POST /sessions/{id}/steps/{pattern}/accept`.
 - [x] `GET /sessions/{id}/steps/{pattern}/proposals` — detectors + pagination + `total_count`
 - [x] `POST /sessions/{id}/steps/{pattern}/accept` — apply fixes + audit log
 - [x] `GET /sessions/{id}/audit` — paginated change log
-- [ ] `GET /datasets/{id}/export` — cleaned CSV download
 - [x] `GET /health` — liveness (no unit tests per guide)
 
 ### Unit tests (service layer, no HTTP)
@@ -29,7 +28,6 @@ Last updated after `POST /sessions/{id}/steps/{pattern}/accept`.
 - [x] `GET .../proposals` — negatives, refunds, double booking, pagination, pipeline data effect (4 tests)
 - [x] `POST .../accept` — selected updates, empty → `changes: []`, audit rows, bad proposal id
 - [x] `GET .../audit`
-- [ ] `GET .../export`
 
 ### Backend infrastructure
 
@@ -41,7 +39,6 @@ Last updated after `POST /sessions/{id}/steps/{pattern}/accept`.
 - [x] Proposals service (`app/proposals.py`)
 - [x] Accept service (`app/accept.py`)
 - [x] Audit service (`app/audit.py`)
-- [ ] Export service
 - [x] Detectors (negatives, refunds, double booking)
 
 ### Docs / schema (no runtime yet)
@@ -216,10 +213,6 @@ Unit tests check the **brain** behind each route. No HTTP.
 
 - Paginate and format log entries.
 
-### `GET .../export`
-
-- One CSV line with cleaned values.
-
 ### `GET /health`
 
 - No unit tests.
@@ -228,6 +221,7 @@ Unit tests check the **brain** behind each route. No HTTP.
 
 ## What we removed from earlier docs
 
+- `GET /datasets/{id}/export` — cleaned CSV download (out of v1 scope; working copy stays in DB; audit is the deliverable for “what changed”)
 - Auto-advance to next anomaly after Submit
 - `current_step` / `completed_steps` on session
 - Server 409 “wrong step” on proposals/accept

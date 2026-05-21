@@ -6,16 +6,28 @@ from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from backend.app import proposals as proposals_logic
-from backend.app.exceptions import ProposalNotFoundError
+from backend.app.exceptions import ProposalNotFoundError, SessionConflictError
 from backend.app.sessions import get_session
 from schemas.api import AppliedCellChange, Proposal
 from schemas.types import CleaningPattern
+
+_VALUE_EPSILON = 1e-9
 
 
 @dataclass(frozen=True)
 class AcceptResult:
     submit_id: UUID
     changes: list[AppliedCellChange]
+
+
+def _as_utc(dt: datetime) -> datetime:
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=UTC)
+    return dt.astimezone(UTC)
+
+
+def _session_versions_match(expected: datetime, actual: datetime) -> bool:
+    return _as_utc(expected) == _as_utc(actual)
 
 
 def _read_cell_value(
@@ -50,6 +62,9 @@ def _apply_proposal(
             conn, proposal.dataset_row_id, cell_change.period
         )
         value_after = cell_change.value_after
+        if abs(value_before - value_after) < _VALUE_EPSILON:
+            continue
+
         conn.execute(
             """
             UPDATE cell_values SET value = ?
@@ -91,19 +106,20 @@ def accept_proposals(
     session_id: UUID,
     pattern: CleaningPattern,
     proposal_ids: list[str],
+    *,
+    session_updated_at: datetime,
 ) -> AcceptResult:
     """
     Apply selected proposals for one pattern.
     Empty proposal_ids updates session timestamp only; no cell or audit writes.
     """
-    get_session(conn, session_id)
-    proposals_by_id = {
-        p.id: p for p in proposals_logic.list_all_proposals(conn, session_id, pattern)
-    }
+    session = get_session(conn, session_id)
+    if not _session_versions_match(session_updated_at, session.updated_at):
+        raise SessionConflictError(session_id)
 
-    for proposal_id in proposal_ids:
-        if proposal_id not in proposals_by_id:
-            raise ProposalNotFoundError(proposal_id)
+    proposals_by_id = proposals_logic.resolve_proposals_for_accept(
+        conn, session_id, pattern, proposal_ids
+    )
 
     submit_id = uuid4()
     now = datetime.now(UTC)

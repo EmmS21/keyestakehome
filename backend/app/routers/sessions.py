@@ -11,7 +11,11 @@ from backend.app import audit as audit_logic
 from backend.app import proposals as proposals_logic
 from backend.app.db.connection import connect
 from backend.app.dependencies import get_db_path
-from backend.app.exceptions import ProposalNotFoundError, SessionNotFoundError
+from backend.app.exceptions import (
+    ProposalNotFoundError,
+    SessionConflictError,
+    SessionNotFoundError,
+)
 from schemas.api import (
     AcceptRequest,
     AcceptResponse,
@@ -49,6 +53,7 @@ def list_proposals(
 
     return ProposalsResponse(
         pattern=page.pattern,
+        session_updated_at=page.session_updated_at,
         proposals=page.proposals,
         total_count=page.total_count,
         limit=page.limit,
@@ -72,10 +77,16 @@ def accept_proposals(
     conn = connect(db_path)
     try:
         result = accept_logic.accept_proposals(
-            conn, session_id, pattern, body.proposal_ids
+            conn,
+            session_id,
+            pattern,
+            body.proposal_ids,
+            session_updated_at=body.session_updated_at,
         )
     except SessionNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except SessionConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except ProposalNotFoundError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     finally:

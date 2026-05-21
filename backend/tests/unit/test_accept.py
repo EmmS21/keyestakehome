@@ -1,5 +1,6 @@
 """Unit tests for accept proposals (POST .../accept brain)."""
 
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
@@ -8,7 +9,11 @@ from backend.app import accept as accept_logic
 from backend.app import datasets as datasets_logic
 from backend.app import proposals as proposals_logic
 from backend.app import sessions as sessions_logic
-from backend.app.exceptions import ProposalNotFoundError, SessionNotFoundError
+from backend.app.exceptions import (
+    ProposalNotFoundError,
+    SessionConflictError,
+    SessionNotFoundError,
+)
 from schemas.types import CleaningPattern
 
 VALID_CSV = """\
@@ -90,6 +95,7 @@ def test_accept_one_checked_row_updates_cells_writes_audit_and_returns_changes(
         session.id,
         CleaningPattern.NEGATIVES,
         [dog_china.id],
+        session_updated_at=session.updated_at,
     )
 
     assert len(result.changes) == 1
@@ -132,6 +138,7 @@ def test_accept_only_checked_rows_change_unchecked_rows_stay_unchanged(
         session.id,
         CleaningPattern.NEGATIVES,
         [selected.id],
+        session_updated_at=session.updated_at,
     )
 
     assert len(result.changes) == len(selected.changes)
@@ -152,7 +159,11 @@ def test_accept_empty_selection_leaves_grid_unchanged_and_writes_no_audit(
     }
 
     result = accept_logic.accept_proposals(
-        conn, session.id, CleaningPattern.NEGATIVES, []
+        conn,
+        session.id,
+        CleaningPattern.NEGATIVES,
+        [],
+        session_updated_at=session.updated_at,
     )
 
     assert result.changes == []
@@ -186,6 +197,7 @@ def test_accept_wrong_or_unknown_proposal_id_raises_without_writes(
             session.id,
             CleaningPattern.NEGATIVES,
             [wrong_pattern_id],
+            session_updated_at=session.updated_at,
         )
 
     assert _audit_count(conn, session.id) == 0
@@ -198,5 +210,65 @@ def test_accept_missing_session_raises(tmp_db):
     conn, _ = tmp_db
     with pytest.raises(SessionNotFoundError):
         accept_logic.accept_proposals(
-            conn, uuid4(), CleaningPattern.NEGATIVES, []
+            conn,
+            uuid4(),
+            CleaningPattern.NEGATIVES,
+            [],
+            session_updated_at=datetime.now(UTC),
         )
+
+
+def test_accept_stale_session_updated_at_raises_conflict_without_writes(
+    tmp_db, tmp_uploads, tmp_path
+):
+    conn, _ = tmp_db
+    _, session = _ingest_sample_session(conn, tmp_uploads, tmp_path)
+    stale = session.updated_at - timedelta(seconds=1)
+
+    negatives = proposals_logic.list_all_proposals(
+        conn, session.id, CleaningPattern.NEGATIVES
+    )
+
+    with pytest.raises(SessionConflictError):
+        accept_logic.accept_proposals(
+            conn,
+            session.id,
+            CleaningPattern.NEGATIVES,
+            [negatives[0].id],
+            session_updated_at=stale,
+        )
+
+    assert _audit_count(conn, session.id) == 0
+
+
+def test_accept_skips_noop_cells_when_value_already_matches_fix(
+    tmp_db, tmp_uploads, tmp_path
+):
+    conn, _ = tmp_db
+    _, session = _ingest_sample_session(conn, tmp_uploads, tmp_path)
+
+    negatives = proposals_logic.list_all_proposals(
+        conn, session.id, CleaningPattern.NEGATIVES
+    )
+    proposal = negatives[0]
+    period = proposal.changes[0].period
+    conn.execute(
+        """
+        UPDATE cell_values SET value = 0
+        WHERE dataset_row_id = ? AND period = ?
+        """,
+        (str(proposal.dataset_row_id), period),
+    )
+    conn.commit()
+    session = sessions_logic.get_session(conn, session.id)
+
+    result = accept_logic.accept_proposals(
+        conn,
+        session.id,
+        CleaningPattern.NEGATIVES,
+        [proposal.id],
+        session_updated_at=session.updated_at,
+    )
+
+    assert result.changes == []
+    assert _audit_count(conn, session.id) == 0

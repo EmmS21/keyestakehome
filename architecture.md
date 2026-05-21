@@ -38,7 +38,7 @@ Diligence data in this space ([Keye](https://www.keye.co/) — raw deal files �
 | **High row counts** per deal (transaction / customer lines), **many periods** | Files are **long × wide**; total cell count is large even when anomalies are sparse. |
 | **One row ≈ one business line**; fixes are **per row / per cell** | Detectors scan row-by-row; accepts patch specific cells; no cross-row magic in v1. |
 | **Anomalies are sparse, detection is not** | Refunds and double-booking require reading **all periods on a row**; we must scan the full grid on the server, not sample detection. |
-| **Human sign-off** on each anomaly class, **audit-grade trail** | Immutable upload + append-only change log + Excel-ready export; analyst must see **what** changed, not just a “cleaned” blob. |
+| **Human sign-off** on each anomaly class, **audit-grade trail** | Immutable upload + append-only change log; analyst must see **what** changed (audit), not just a “cleaned” blob. |
 | **Interrupted workflows** (days per deal) | Persist working copy and step; resume without re-upload. |
 
 **In one line:** deal revenue grids are **large, wide, and defensibility-critical** — so the server holds truth, the UI sees pages and deltas, and every accept is logged.
@@ -65,7 +65,6 @@ Technical rules that follow from §2.2. v1 scope — not deferred.
 | **Paginated proposals** + `total_count` | Analysts need **context** (a page of examples) and **scope** (how many issues exist) — not every Before/After at once. |
 | **Delta Submit** | Most cells unchanged; only accepted fixes should drive writes. |
 | **Paginated audit** | Trail grows per deal over days; fits “what did we change?” without huge responses. |
-| **Streamed export** | Output is the same wide CSV shape analysts expect in Excel. |
 | **Working copy in DB** (`cell_values`) | Large grid + multi-day sessions; truth cannot live in process memory. |
 
 **Out of scope for v1:** job queues, sharding, read replicas, proposal cache tables. Known design boundaries: [`docs/limitations.md`](docs/limitations.md).
@@ -161,7 +160,6 @@ Each proposal stores: which dataset row, which cells change, before/after values
 ### 5.2 Empty / complete states
 
 - **No proposals for a pattern (when tab open):** calm empty state on that tab (“Nothing to clean for this pattern”).
-- **Export:** available when the user wants the current working copy (not gated on “all steps done” in the DB).
 
 ### 5.3 Reject / partial accept
 
@@ -195,7 +193,6 @@ Each proposal stores: which dataset row, which cells change, before/after values
 |---------|-----|
 | **Row context in proposals** | Show dimension columns so “Dog / China / Line” is identifiable |
 | **Counts per pattern** | “12 proposals” in sidebar without loading all rows |
-| **Export cleaned file** | Closes the loop for analysts |
 | **Tab issue indicators** | Sidebar: color/badge when `total_count` > 0 |
 
 ### 6.3 Won’t build in v1 (document as assumptions)
@@ -205,6 +202,7 @@ Each proposal stores: which dataset row, which cells change, before/after values
 - Undo beyond “don’t accept” (optional: single-step undo later)
 - Bulk upload scheduling, API integrations
 - Statistical confidence or ML explanations
+- **Cleaned CSV download** (`GET /datasets/:id/export`) — working copy remains in DB; audit is the v1 artifact for defensibility
 
 ---
 
@@ -260,7 +258,7 @@ We store changes in **two places**, for different jobs:
 
 | Layer | What it is | Used for |
 |-------|------------|----------|
-| **Working state** (`cell_values`) | Current value of every cell (updated in place on accept) | Running detectors on the next pattern; export |
+| **Working state** (`cell_values`) | Current value of every cell (updated in place on accept) | Running detectors on the next pattern |
 | **Audit log** (`audit_log_entries`) | Append-only record of each cell change | “What did we change last week?”; defensibility; resume narrative |
 
 This is **not** “only store deltas instead of data.” Detectors need the **full current grid** per row. What stays efficient at scale:
@@ -393,7 +391,6 @@ Intent only. Server resolves before/after from stored proposals.
 |----------|--------|
 | `GET .../proposals?limit&offset` | Paginated proposals + `total_count` |
 | `GET .../audit` | Paginated `changes` (audit log) |
-| Export | Full cleaned file only when user explicitly downloads |
 
 **Storage:** materialized `cell_values` for current state + append-only audit for history — not audit-only replay on every read.
 
@@ -407,7 +404,6 @@ Intent only. Server resolves before/after from stored proposals.
 | Paginated proposals | `GET .../proposals?limit=10&offset=0` returns page + `total_count` |
 | Delta Submit | §8.3–8.4 unchanged |
 | Paginated audit | `GET .../audit?limit&offset` |
-| Streamed export | `GET .../export` writes CSV via cursor over `cell_values` ⨝ `dataset_rows` |
 | DB working copy | `cell_values` table; detectors read via SQL, not app-global dict |
 
 ### 8.6 Persistence & resume
@@ -430,7 +426,6 @@ Enough for an analyst returning a week later: audit shows pattern, row, period, 
 | `GET /sessions/:id/steps/:pattern/proposals` | `?limit&offset` → proposals page + `total_count` |
 | `POST /sessions/:id/steps/:pattern/accept` | In: `{ proposalIds }`. Out: `{ submitId, changes[] }`. Persists cell updates + audit |
 | `GET /sessions/:id/audit` | Paginated change log (`changes` / `audit_log_entries`) |
-| `GET /datasets/:id/export` | Optional cleaned download |
 
 ---
 
@@ -478,7 +473,7 @@ Enough for an analyst returning a week later: audit shows pattern, row, period, 
 6. Refund detector (on working copy)  
 7. Double booking detector  
 8. Sidebar + tab counts/badges + manual navigation  
-9. Audit log UI + export  
+9. Audit log UI  
 
 ---
 

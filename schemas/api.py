@@ -34,7 +34,7 @@ class Proposal(BaseModel):
     dimension_b: str | None = None
     dimension_c: str | None = None
     changes: list[CellChange] = Field(
-        min_length=1,
+        default_factory=list,
         description="Cells to fix on this row if the user checks the box",
     )
 
@@ -42,6 +42,9 @@ class Proposal(BaseModel):
 class AcceptRequest(BaseModel):
     """POST .../accept — client sends decisions only, not new values."""
 
+    session_updated_at: datetime = Field(
+        description="Must match cleaning_sessions.updated_at from when proposals were loaded",
+    )
     proposal_ids: list[str] = Field(
         default_factory=list,
         description="Checked rows; empty = Submit with none accepted",
@@ -97,6 +100,9 @@ class ProposalsResponse(BaseModel):
     """GET .../proposals — one page; full file stays on server."""
 
     pattern: CleaningPattern
+    session_updated_at: datetime = Field(
+        description="Send back on accept; 409 if session changed since load",
+    )
     proposals: list[Proposal]
     total_count: int = Field(
         ge=0,

@@ -41,6 +41,16 @@ class ProposalNotFoundError(Exception):
         super().__init__(f"Proposal not found: {proposal_id}")
 
 
+class SessionConflictError(Exception):
+    """Session changed since the client loaded proposals."""
+
+    def __init__(self, session_id) -> None:
+        self.session_id = session_id
+        super().__init__(
+            f"Session {session_id} was updated; reload proposals before submitting"
+        )
+
+
 class InvalidPeriodValueError(IngestError):
     """A period cell is not numeric."""
 

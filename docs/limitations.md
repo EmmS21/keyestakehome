@@ -13,6 +13,12 @@ Known boundaries of the design. Intentional for scope, not oversights.
 
 ---
 
+## Stale submit / two tabs
+
+**Behavior:** `GET .../proposals` returns `session_updated_at`. `POST .../accept` must send the same value; otherwise **409 Conflict** (reload proposals). Cells already at the fix value are skipped (no audit row).
+
+---
+
 ## Related v1 scope (not limitations of the data model)
 
 - One analyst per dataset session; no collaboration.

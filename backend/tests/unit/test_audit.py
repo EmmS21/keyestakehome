@@ -66,6 +66,7 @@ def test_list_audit_shows_what_accept_saved(tmp_db, tmp_uploads, tmp_path):
         session.id,
         CleaningPattern.NEGATIVES,
         [dog_china.id],
+        session_updated_at=session.updated_at,
     )
 
     page = audit_logic.list_audit(conn, session.id, limit=10, offset=0)
@@ -95,6 +96,7 @@ def test_list_audit_pagination(tmp_db, tmp_uploads, tmp_path):
         session.id,
         CleaningPattern.NEGATIVES,
         [p.id for p in negatives],
+        session_updated_at=session.updated_at,
     )
 
     page1 = audit_logic.list_audit(conn, session.id, limit=2, offset=0)
@@ -123,6 +125,7 @@ def test_list_audit_only_this_sessions_changes(tmp_db, tmp_uploads, tmp_path):
         session_a.id,
         CleaningPattern.NEGATIVES,
         [negatives[0].id],
+        session_updated_at=session_a.updated_at,
     )
 
     audit_a = audit_logic.list_audit(conn, session_a.id, limit=10, offset=0)
