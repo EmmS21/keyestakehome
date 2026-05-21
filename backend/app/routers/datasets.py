@@ -4,19 +4,22 @@ from datetime import datetime
 from pathlib import Path
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 from pydantic import BaseModel, Field
 
 from backend.app import datasets as datasets_logic
+from backend.app import sessions as sessions_logic
 from backend.app.db.connection import connect
 from backend.app.dependencies import get_db_path, get_uploads_dir
 from backend.app.exceptions import (
+    DatasetNotFoundError,
     EmptyDatasetError,
     IngestError,
     InvalidPeriodValueError,
     NoDataRowsError,
     NoPeriodColumnsError,
 )
+from schemas.api import SessionCreateResponse
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
 
@@ -117,4 +120,27 @@ async def upload_dataset(
         period_columns=dataset.period_columns,
         row_count=count,
         uploaded_at=dataset.uploaded_at,
+    )
+
+
+@router.post("/{dataset_id}/sessions", response_model=SessionCreateResponse)
+def create_or_resume_session(
+    dataset_id: UUID,
+    response: Response,
+    db_path: Path = Depends(get_db_path),
+) -> SessionCreateResponse:
+    conn = connect(db_path)
+    try:
+        session, created = sessions_logic.start_or_resume_session(conn, dataset_id)
+    except DatasetNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    finally:
+        conn.close()
+
+    response.status_code = 201 if created else 200
+    return SessionCreateResponse(
+        session_id=session.id,
+        dataset_id=session.dataset_id,
+        created_at=session.created_at,
+        updated_at=session.updated_at,
     )

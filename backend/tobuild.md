@@ -14,7 +14,7 @@ Last updated after `POST /datasets` (commit `e77befb`).
 
 - [x] `POST /datasets` — CSV upload, parse, persist `datasets` / `dataset_rows` / `cell_values`, copy to `uploads/`
 - [x] `GET /datasets` — list datasets for explorer
-- [ ] `POST /datasets/{id}/sessions` — create or resume `cleaning_sessions`
+- [x] `POST /datasets/{id}/sessions` — create or resume `cleaning_sessions`
 - [ ] `GET /sessions/{id}/steps/{pattern}/proposals` — detectors + pagination + `total_count`
 - [ ] `POST /sessions/{id}/steps/{pattern}/accept` — apply fixes + audit log
 - [ ] `GET /sessions/{id}/audit` — paginated change log
@@ -25,7 +25,7 @@ Last updated after `POST /datasets` (commit `e77befb`).
 
 - [x] `POST /datasets` — valid grid stored; reject empty, header-only, no periods, bad numeric
 - [x] `GET /datasets` — empty list; after ingest returns summary with row_count
-- [ ] `POST /datasets/{id}/sessions`
+- [x] `POST /datasets/{id}/sessions`
 - [ ] `GET .../proposals` — negatives, refunds, double booking, pagination, any pattern, pipeline data effect
 - [ ] `POST .../accept` — selected updates, empty → `changes: []`, audit rows, bad proposal id
 - [ ] `GET .../audit`
@@ -34,9 +34,11 @@ Last updated after `POST /datasets` (commit `e77befb`).
 ### Backend infrastructure
 
 - [x] SQLite schema: `datasets`, `dataset_rows`, `cell_values`
-- [ ] SQLite schema: `cleaning_sessions`, `audit_log_entries`
+- [x] SQLite schema: `cleaning_sessions`
+- [ ] SQLite schema: `audit_log_entries`
 - [x] Dataset ingest + persistence (`app/datasets.py`)
-- [ ] Session / proposals / accept / audit / export services
+- [x] Session start/resume (`app/sessions.py`)
+- [ ] Proposals / accept / audit / export services
 - [ ] Detectors (negatives, refunds, double booking)
 
 ### Docs / schema (no runtime yet)

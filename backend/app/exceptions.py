@@ -17,6 +17,14 @@ class NoPeriodColumnsError(IngestError):
     """No YYYYMM period columns found in the header."""
 
 
+class DatasetNotFoundError(Exception):
+    """No dataset exists for the given id."""
+
+    def __init__(self, dataset_id) -> None:
+        self.dataset_id = dataset_id
+        super().__init__(f"Dataset not found: {dataset_id}")
+
+
 class InvalidPeriodValueError(IngestError):
     """A period cell is not numeric."""
 

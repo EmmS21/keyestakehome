@@ -84,6 +84,15 @@ class AuditLogResponse(BaseModel):
     total_count: int = Field(ge=0)
 
 
+class SessionCreateResponse(BaseModel):
+    """POST /datasets/{id}/sessions — start or resume cleaning."""
+
+    session_id: UUID
+    dataset_id: UUID
+    created_at: datetime
+    updated_at: datetime
+
+
 class ProposalsResponse(BaseModel):
     """GET .../proposals — one page; full file stays on server."""
 
