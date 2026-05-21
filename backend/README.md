@@ -21,6 +21,7 @@ Upload: `POST http://127.0.0.1:8000/datasets` (multipart field `file`)
 | `app/dependencies.py` | Shared `Depends()` helpers (paths, etc.) |
 | `app/routers/` | HTTP routes + response models |
 | `app/datasets.py` | Dataset ingest, parse, and DB access |
+| `app/sessions.py` | Cleaning session start and resume |
 | `app/db/` | SQLite connection and schema init |
 | `tests/unit/` | Detector and pure logic tests |
 | `tests/integration/` | Upload → pipeline → audit flows |

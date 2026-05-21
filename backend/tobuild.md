@@ -8,7 +8,7 @@ Run unit tests: `pytest backend/tests/unit -v`
 
 ## Build progress
 
-Last updated after `POST /datasets` (commit `e77befb`).
+Last updated after `POST /datasets/{id}/sessions` (commit `5d797e0`).
 
 ### API endpoints
 
@@ -25,7 +25,7 @@ Last updated after `POST /datasets` (commit `e77befb`).
 
 - [x] `POST /datasets` — valid grid stored; reject empty, header-only, no periods, bad numeric
 - [x] `GET /datasets` — empty list; after ingest returns summary with row_count
-- [x] `POST /datasets/{id}/sessions`
+- [x] `POST /datasets/{id}/sessions` — create then resume same id; unknown dataset raises
 - [ ] `GET .../proposals` — negatives, refunds, double booking, pagination, any pattern, pipeline data effect
 - [ ] `POST .../accept` — selected updates, empty → `changes: []`, audit rows, bad proposal id
 - [ ] `GET .../audit`
@@ -187,11 +187,12 @@ Unit tests check the **brain** behind each route. No HTTP.
 
 ### `GET /datasets`
 
-- Almost nothing (list from DB later).
+- List datasets from DB with `row_count` and metadata.
 
 ### `POST /datasets/{id}/sessions`
 
 - Create or return a session linked to the dataset.
+- Resume reuses same `session_id` (one row per dataset).
 - **Do not** test “starts on negatives” or step advancement.
 
 ### `GET .../proposals`
