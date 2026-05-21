@@ -1,6 +1,31 @@
 # Data Cleaning Tool
 
-Take-home: upload deal revenue grids, clean anomalies step-by-step (negatives → refunds → double booking), audit every change.
+Take-home: upload deal revenue grids, review anomaly proposals (negatives → refunds → double booking), accept fixes with an audit trail, export cleaned CSV.
+
+**Persona:** private equity diligence analyst. They know what negatives, refunds, and double bookings mean; the UI uses pattern names and cell highlights only (no tutorial copy). They work in interrupted sessions and need defensibility — every accepted cell is logged.
+
+## How it works
+
+1. **Upload** CSV on the file explorer (`/`).
+2. **Clean** opens the workspace (`/clean/[datasetId]`). Sidebar lists three patterns; **no tab is selected** until the analyst clicks one.
+3. **Review** Before | After tables for a paginated page of proposals (`total_count` shows full scope).
+4. **Submit** applies checked rows for that pattern only; working copy and audit update; UI returns to idle (no auto tab switch).
+5. **Resume** later — same session per dataset; audit and working copy persist on the server.
+6. **Export** downloads the current `cell_values` grid; each download is recorded in `export_events`.
+
+Deal grids are **large and wide** (many rows × many period columns). The full grid stays on the server; the browser gets paginated proposals and audit entries only. See [`docs/limitations.md`](docs/limitations.md) for intentional v1 boundaries.
+
+### Anomaly patterns (from brief)
+
+| Pattern | Detection | Fix |
+|---------|-----------|-----|
+| **Negative values** | Any period `< 0` | Set to `0` |
+| **Refunds** | N consecutive periods with sum `== 0` | Set those cells to `0` |
+| **Double booking** | `avg(M_i, M_{i+1}) == M_i / 2` | Both cells → average (sum preserved) |
+
+Sidebar order is **display-only** (negatives → refunds → double booking). The analyst may open patterns in any order; accepted fixes change what downstream detectors see on the working copy.
+
+Sample data: [`data/sample.csv`](data/sample.csv).
 
 ## Why we track exports
 
@@ -25,46 +50,41 @@ uvicorn backend.app.main:app --reload
 - API docs: http://127.0.0.1:8000/docs  
 - Health: http://127.0.0.1:8000/health  
 
-**Frontend** — see [`frontend/README.md`](frontend/README.md). Initialize Next.js when ready (`create-next-app` or manual `package.json`).
+**Frontend:**
+
+```bash
+cd frontend
+cp .env.local.example .env.local   # NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
+npm install
+npm run dev
+```
+
+Open http://127.0.0.1:3000. Details: [`frontend/README.md`](frontend/README.md).
+
+**Tests:**
+
+```bash
+pytest backend/tests/unit -v          # backend (repo root, venv active)
+cd frontend && npm run test:e2e       # Playwright (API must be running)
+```
 
 ## Repository layout
 
 ```
 keyestakehome/
 ├── README.md
-├── architecture.md          # System design, API, build order
 ├── requirements.txt         # Python deps (backend + schemas)
 │
 ├── docs/
 │   ├── database-schema.md   # ER diagram, storage layers, API DTOs
-│   └── limitations.md       # v1 scope boundaries
+│   ├── limitations.md       # v1 scope boundaries
+│   └── design/              # Wireframes (cleaning-workspace.html)
 │
 ├── schemas/                 # Pydantic: DB tables + API DTOs
-│   ├── types.py
-│   ├── database.py
-│   └── api.py
-│
-├── data/                    # Sample CSV for dev/demos
-│   └── sample.csv
-│
-├── backend/                 # FastAPI
-│   ├── app/
-│   │   ├── main.py
-│   │   ├── dependencies.py
-│   │   ├── datasets.py
-│   │   ├── routers/
-│   │   └── db/
-│   └── tests/
-│       ├── unit/
-│       └── integration/
-│
-├── frontend/                # Next.js (folders ready; init deps when needed)
-│   ├── app/
-│   ├── src/components/
-│   ├── src/lib/
-│   └── public/
-│
-├── scripts/                 # Dev helpers (seed, etc.)
+├── data/sample.csv          # Dev / demo CSV
+├── backend/                 # FastAPI — see backend/README.md
+├── frontend/                # Next.js — see frontend/README.md
+├── scripts/
 └── uploads/                 # Runtime CSV storage (gitignored)
 ```
 
@@ -72,6 +92,23 @@ keyestakehome/
 
 | Doc | Contents |
 |-----|----------|
-| [`architecture.md`](architecture.md) | Persona, scale rules, detectors, API surface |
+| [`backend/README.md`](backend/README.md) | Endpoints, request/response notes, server product rules |
 | [`docs/database-schema.md`](docs/database-schema.md) | ER diagram, storage/flow views, field mapping |
-| [`docs/limitations.md`](docs/limitations.md) | Intentional v1 boundaries |
+| [`docs/limitations.md`](docs/limitations.md) | Intentional v1 boundaries and assumptions |
+| [`docs/design/wireframes/cleaning-workspace.html`](docs/design/wireframes/cleaning-workspace.html) | Low-fidelity UI reference |
+
+## Tech stack
+
+- **Frontend:** Next.js (App Router), React
+- **Backend:** Python, FastAPI
+- **Storage:** SQLite (`backend/data/app.db`) + immutable uploads on disk
+- **Schemas:** Pydantic in [`schemas/`](schemas/)
+
+## Success criteria
+
+- Upload and clean without prior knowledge of which anomalies exist.
+- Highlighted before/after proposals per pattern (paginated; `total_count` visible).
+- Select all / none / subset and submit; empty submit leaves working copy unchanged.
+- Demonstrate ordering effect (e.g. accepting negatives can reduce refund proposals).
+- Return later with persisted working copy and readable audit log.
+- Export working copy with export events for version tracing.

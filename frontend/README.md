@@ -42,10 +42,8 @@ npm run test:e2e
 | `src/lib/` | API client, types shared with backend responses |
 | `public/` | Static assets |
 
-## Build guide
+## Wireframes
 
-Implementation checklist and UX rules: [`tobuild.md`](tobuild.md).
-
-Low-fidelity wireframes: [`docs/design/wireframes/cleaning-workspace.html`](../docs/design/wireframes/cleaning-workspace.html).
+Low-fidelity UI reference: [`docs/design/wireframes/cleaning-workspace.html`](../docs/design/wireframes/cleaning-workspace.html).
 
 API reference: [`backend/README.md`](../backend/README.md) · Swagger UI at `http://127.0.0.1:8000/docs` (with backend running).

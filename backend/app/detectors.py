@@ -1,4 +1,4 @@
-"""Per-row anomaly detectors — rules from the brief (architecture §4)."""
+"""Per-row anomaly detectors — rules from the brief (see README.md)."""
 
 from uuid import UUID
 

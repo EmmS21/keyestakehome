@@ -14,4 +14,4 @@ Open in a browser (no build step):
 open docs/design/wireframes/cleaning-workspace.html
 ```
 
-Implementation checklist: [`frontend/tobuild.md`](../../frontend/tobuild.md). Product context: [`architecture.md`](../../architecture.md).
+Product context: [`README.md`](../../README.md). Scope boundaries: [`limitations.md`](../limitations.md).

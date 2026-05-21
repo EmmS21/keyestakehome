@@ -1,5 +1,5 @@
 """
-Pydantic models aligned with persisted tables (§8.2 in architecture.md).
+Pydantic models aligned with persisted tables — see docs/database-schema.md.
 
 Use these for: DB row validation, repository layer, migrations documentation.
 """
