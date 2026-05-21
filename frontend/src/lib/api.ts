@@ -1,3 +1,11 @@
+import type {
+  AcceptResponse,
+  AuditLogResponse,
+  CleaningPattern,
+  ProposalsResponse,
+  SessionResponse,
+} from "./types";
+
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://127.0.0.1:8000";
 
@@ -7,11 +15,6 @@ export type DatasetSummary = {
   period_columns: string[];
   row_count: number;
   uploaded_at: string;
-};
-
-export type AuditLogResponse = {
-  entries: unknown[];
-  total_count: number;
 };
 
 export type DatasetListResponse = {
@@ -55,13 +58,90 @@ export async function listDatasets(): Promise<DatasetSummary[]> {
   return data.datasets;
 }
 
-export async function createOrResumeSession(datasetId: string): Promise<string> {
+export async function startSession(
+  datasetId: string,
+): Promise<SessionResponse> {
   const res = await fetch(`${API_BASE}/datasets/${datasetId}/sessions`, {
     method: "POST",
   });
   if (!res.ok) throw await parseError(res);
-  const data: { session_id: string } = await res.json();
+  return res.json();
+}
+
+export async function createOrResumeSession(datasetId: string): Promise<string> {
+  const data = await startSession(datasetId);
   return data.session_id;
+}
+
+export async function findDataset(
+  datasetId: string,
+): Promise<DatasetSummary | null> {
+  const datasets = await listDatasets();
+  return datasets.find((d) => d.id === datasetId) ?? null;
+}
+
+export async function fetchPatternCount(
+  sessionId: string,
+  pattern: CleaningPattern,
+): Promise<number> {
+  const page = await fetchProposals(sessionId, pattern, 1, 0);
+  return page.total_count;
+}
+
+export async function fetchProposals(
+  sessionId: string,
+  pattern: CleaningPattern,
+  limit: number,
+  offset: number,
+): Promise<ProposalsResponse> {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  });
+  const res = await fetch(
+    `${API_BASE}/sessions/${sessionId}/steps/${pattern}/proposals?${params}`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) throw await parseError(res);
+  return res.json();
+}
+
+export async function acceptProposals(
+  sessionId: string,
+  pattern: CleaningPattern,
+  proposalIds: string[],
+  sessionUpdatedAt: string,
+): Promise<AcceptResponse> {
+  const res = await fetch(
+    `${API_BASE}/sessions/${sessionId}/steps/${pattern}/accept`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        proposal_ids: proposalIds,
+        session_updated_at: sessionUpdatedAt,
+      }),
+    },
+  );
+  if (!res.ok) throw await parseError(res);
+  return res.json();
+}
+
+export async function fetchAudit(
+  sessionId: string,
+  limit: number,
+  offset: number,
+): Promise<AuditLogResponse> {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  });
+  const res = await fetch(
+    `${API_BASE}/sessions/${sessionId}/audit?${params}`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) throw await parseError(res);
+  return res.json();
 }
 
 /** True if this dataset's cleaning session has any audit entries. */

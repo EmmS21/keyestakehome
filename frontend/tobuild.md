@@ -180,11 +180,11 @@ Use this as a QA matrix; full manual tests at bottom.
 
 - [x] Next.js app (`package.json`, `next.config`, `tsconfig`)
 - [x] `NEXT_PUBLIC_API_URL`
-- [x] API client in `src/lib/api.ts` (explorer types; workspace types TBD)
-- [ ] Shared types: `CleaningPattern`, `Proposal`, `AcceptRequest`, `AuditEntry`, etc.
+- [x] API client in `src/lib/api.ts` (explorer + workspace)
+- [x] Shared types: `CleaningPattern`, `Proposal`, `AcceptRequest`, `AuditEntry`, etc. (`src/lib/types.ts`)
 - [x] App chrome: header styles, buttons, banners (toast + `list-end-marker` with workspace)
 - [x] Wireframe link in dev README (already in `frontend/README.md`)
-- [x] Playwright E2E harness (`playwright.config.ts`, `e2e/explorer.spec.ts`)
+- [x] Playwright E2E harness (`playwright.config.ts`, `e2e/explorer.spec.ts`, `e2e/workspace.spec.ts`)
 
 ---
 
@@ -200,7 +200,7 @@ Use this as a QA matrix; full manual tests at bottom.
 - [x] Upload errors: empty file, no rows, no periods, invalid numeric → show server message (E6)
 - [x] Duplicate filename blocked (client + API 409)
 - [x] **Status:** Unchanged / Modified via audit log (`POST` session + `GET` audit `total_count`)
-- [x] **Clean** → `router.push(/clean/${datasetId})` (workspace stub for now)
+- [x] **Clean** → `router.push(/clean/${datasetId})`
 - [x] Loading / failure states (E3–E4, E5–E7)
 - [x] E2E: `e2e/explorer.spec.ts` (3 specs: empty state, upload, navigate to clean)
 
@@ -212,62 +212,64 @@ Use this as a QA matrix; full manual tests at bottom.
 
 #### Shell & header (all workspace artboards)
 
-- [ ] Mount: `POST /datasets/{id}/sessions` → `session_id` (W2–W3)
-- [ ] Prefetch: 3× `GET .../proposals?limit=1&offset=0` → `patternCounts` (W4–W6)
-- [ ] Header: `← Explorer` link, dataset **name**, **Audit log** toggle (clipboard icon + label)
-- [ ] Audit toggle: `aria-pressed`, `aria-label`, filled style when open (A1–A2)
+- [x] Mount: `POST /datasets/{id}/sessions` → `session_id` (W2–W3)
+- [x] Prefetch: 3× `GET .../proposals?limit=1&offset=0` → `patternCounts` (W4–W6)
+- [x] Header: `← Explorer` link, dataset **name**, **Audit log** toggle (clipboard icon + label)
+- [x] Audit toggle: `aria-pressed`, `aria-label`, filled style when open (A1–A2)
 
 #### Sidebar — anomaly tabs (artboards 4–7)
 
-- [ ] Three equal-height tabs: Negative values, Refunds, Double booking (W1)
-- [ ] Badge from `total_count`; muted tab when `0` (W4–W5)
-- [ ] **Idle:** no `.active` tab (artboard 4)
-- [ ] Tab click → set `activePattern`; fetch proposals `limit=10&offset=0` (W7, W9)
+- [x] Three equal-height tabs: Negative values, Refunds, Double booking (W1)
+- [x] Badge from `total_count`; muted tab when `0` (W4–W5)
+- [x] **Idle:** no `.active` tab (artboard 4)
+- [x] Tab click → set `activePattern`; fetch proposals `limit=10&offset=0` (W7, W9)
 
 #### Main panel — idle (artboards 4, 7)
 
-- [ ] **4 — Idle:** centered “Select an anomaly to review”; no tables; no Submit (W1)
-- [ ] `activePattern = null` on load, refresh, and after successful Submit (S10)
-- [ ] **7 — Toast:** overlay on idle main; hide idle prompt while toast visible (S3–S5)
-- [ ] Toast variants: “Nothing changed” | “Applied N changes” | error message (S1–S2, S6–S9)
+- [x] **4 — Idle:** centered “Select an anomaly to review”; no tables; no Submit (W1)
+- [x] `activePattern = null` on load, refresh, and after successful Submit (S10)
+- [x] **7 — Toast:** overlay on idle main; hide idle prompt while toast visible (S3–S5)
+- [x] Toast variants: “Nothing changed” | “Applied N changes” | error message (S1–S2, S6–S9)
 
 #### Main panel — pattern open (artboards 5–6)
 
-- [ ] **5 — Header:** pattern title + subtitle `{total_count} rows with issues`
-- [ ] Toolbar: **Select all** / **Select none** (loaded rows only) (P9)
-- [ ] **5 — Compare:** side-by-side **BEFORE** | **AFTER** tables (not card list)
-- [ ] Dimension columns + period columns from proposal payload
-- [ ] Before: checkbox column; highlight anomaly cells (P6)
-- [ ] After: no checkbox; highlight fix cells (P7)
-- [ ] Row hover / checked styles (P8)
-- [ ] Legend line + **Submit** button (submit-row)
-- [ ] **6 — Empty:** “Nothing to clean for this pattern”; hide Submit (P3)
-- [ ] Infinite scroll: increase `offset`, append proposals (P4–P5)
-- [ ] Sync scroll between Before/After panels (P10)
-- [ ] Store `session_updated_at` from proposals response
+- [x] **5 — Header:** pattern title + subtitle `{total_count} rows with issues`
+- [x] Toolbar: **Select all** / **Select none** (loaded rows only) (P9)
+- [x] **5 — Compare:** side-by-side **BEFORE** | **AFTER** tables (not card list)
+- [x] Dimension columns + period columns from proposal payload
+- [x] Before: checkbox column; highlight anomaly cells (P6)
+- [x] After: no checkbox; highlight fix cells (P7)
+- [x] Row hover / checked styles (P8)
+- [x] Legend line + **Submit** button (submit-row)
+- [x] **6 — Empty:** “Nothing to clean for this pattern”; hide Submit (P3)
+- [x] Infinite scroll: increase `offset`, append proposals (P4–P5)
+- [x] Sync scroll between Before/After panels (P10)
+- [x] Store `session_updated_at` from proposals response
 
 #### Selection (artboard 5)
 
-- [ ] One checkbox per proposal row (= all cell fixes on that row)
-- [ ] sessionStorage read/write per § Client state
-- [ ] Do **not** clear selection when loading more rows (only on tab switch / Submit)
+- [x] One checkbox per proposal row (= all cell fixes on that row)
+- [x] sessionStorage read/write per § Client state
+- [x] Do **not** clear selection when loading more rows (only on tab switch / Submit)
 
 #### Submit flow (artboards 5 → 7)
 
-- [ ] `POST .../accept` body: `{ proposal_ids, session_updated_at }`
-- [ ] Empty `proposal_ids` → S1
-- [ ] Success → S2, S10; refetch all three pattern counts
-- [ ] 409 / 400 / 404 / network → S6–S9
+- [x] `POST .../accept` body: `{ proposal_ids, session_updated_at }`
+- [x] Empty `proposal_ids` → S1
+- [x] Success → S2, S10; refetch all three pattern counts
+- [x] 409 / 400 / 404 / network → S6–S9
 
 #### Audit sidebar (artboards 8–9)
 
-- [ ] Collapsible right panel ~340px; hidden by default (A1)
-- [ ] `GET /sessions/{id}/audit?limit&offset` on open and on scroll (A4–A8)
-- [ ] Table columns per wireframe (A5)
-- [ ] Empty: “No changes yet” (A7)
-- [ ] End marker when all entries loaded (A6)
-- [ ] Footer: “Scroll up for newer entries” when non-empty (A9)
-- [ ] Close via toggle or × in sidebar header (A3)
+- [x] Collapsible right panel ~340px; hidden by default (A1)
+- [x] `GET /sessions/{id}/audit?limit&offset` on open and on scroll (A4–A8)
+- [x] Table columns per wireframe (A5)
+- [x] Empty: “No changes yet” (A7)
+- [x] End marker when all entries loaded (A6)
+- [x] Footer: “Scroll up for newer entries” when non-empty (A9)
+- [x] Close via toggle or × in sidebar header (A3)
+
+- [x] E2E: `e2e/workspace.spec.ts` (8 specs: idle, pattern, submit, selection, empty, audit, redirect)
 
 ---
 

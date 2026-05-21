@@ -2,6 +2,8 @@ import { readFileSync, writeFileSync } from "fs";
 import { basename, join } from "path";
 import { test, expect } from "@playwright/test";
 
+import { escapeRegex } from "./helpers";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 const SAMPLE_CSV = join(__dirname, "../../data/sample.csv");
 
@@ -20,7 +22,11 @@ async function requireBackend(
 
 function uniqueSampleCopy(): string {
   const content = readFileSync(SAMPLE_CSV, "utf-8");
-  const path = join(__dirname, "fixtures", `e2e-${Date.now()}.csv`);
+  const path = join(
+    __dirname,
+    "fixtures",
+    `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.csv`,
+  );
   writeFileSync(path, content);
   return path;
 }
@@ -58,12 +64,15 @@ test.describe("File Explorer", () => {
 
     await page.goto("/");
     await page.getByTestId("upload-input").setInputFiles(filePath);
+    await expect(page.getByTestId("upload-zone")).not.toHaveClass(/loading/, {
+      timeout: 20_000,
+    });
+    await expect(page.getByTestId("error-banner")).toHaveCount(0);
 
     await expect(page.getByTestId("dataset-table")).toBeVisible();
-    await expect(page.getByRole("row", { name: new RegExp(fileName) })).toBeVisible();
-    await expect(
-      page.getByRole("row", { name: new RegExp(fileName) }).getByTestId("dataset-status"),
-    ).toHaveText("Unchanged");
+    const row = page.getByRole("row", { name: new RegExp(escapeRegex(fileName)) });
+    await expect(row).toBeVisible({ timeout: 15_000 });
+    await expect(row.getByTestId("dataset-status")).toHaveText("Unchanged");
     await expect(page.getByTestId("clean-button").first()).toBeEnabled();
     await expect(page.getByTestId("explorer-empty-message")).toHaveCount(0);
   });
@@ -74,12 +83,16 @@ test.describe("File Explorer", () => {
 
     await page.goto("/");
     await page.getByTestId("upload-input").setInputFiles(filePath);
-    await page
-      .getByRole("row", { name: new RegExp(basename(filePath)) })
-      .getByTestId("clean-button")
-      .click();
+    await expect(page.getByTestId("upload-zone")).not.toHaveClass(/loading/, {
+      timeout: 20_000,
+    });
+    await expect(page.getByTestId("error-banner")).toHaveCount(0);
+    const fileName = basename(filePath);
+    const row = page.getByRole("row", { name: new RegExp(escapeRegex(fileName)) });
+    await expect(row).toBeVisible({ timeout: 15_000 });
+    await row.getByTestId("clean-button").click();
 
-    await expect(page).toHaveURL(/\/clean\/[0-9a-f-]{36}$/i);
+    await expect(page).toHaveURL(/\/clean\/[0-9a-f-]{36}$/i, { timeout: 15_000 });
     await expect(page.getByTestId("workspace-shell")).toBeVisible();
   });
 });
