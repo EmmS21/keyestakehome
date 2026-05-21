@@ -84,7 +84,6 @@ keyestakehome/
 ├── data/sample.csv          # Dev / demo CSV
 ├── backend/                 # FastAPI — see backend/README.md
 ├── frontend/                # Next.js — see frontend/README.md
-├── scripts/
 └── uploads/                 # Runtime CSV storage (gitignored)
 ```
 
