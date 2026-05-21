@@ -12,6 +12,8 @@ erDiagram
   datasets ||--o{ cleaning_sessions : cleaned_via
   dataset_rows ||--o{ cell_values : has_cells
   cleaning_sessions ||--o{ audit_log_entries : change_log
+  cleaning_sessions ||--o{ export_events : downloads
+  datasets ||--o{ export_events : exported_from
   dataset_rows ||--o{ audit_log_entries : which_row
 
   datasets {
@@ -54,6 +56,16 @@ erDiagram
     number value_before
     number value_after
     datetime created_at
+  }
+
+  export_events {
+    string id
+    string dataset_id
+    string session_id
+    datetime exported_at
+    datetime session_updated_at
+    int audit_entry_count
+    int export_number
   }
 ```
 
@@ -137,11 +149,18 @@ sequenceDiagram
 ```mermaid
 flowchart TB
   AL[audit_log_entries]
+  EX[export_events]
   Submit --> SID[submit_id]
   SID --> AL
   AL --> SG[group by submit_id]
   pattern --> AL
+  Download["GET export"] --> EX
+  EX -->|audit_entry_count + session_updated_at| Version[version snapshot]
 ```
+
+**Cell changes** (`audit_log_entries`): one row per accepted cell, grouped by `submit_id`.
+
+**Exports** (`export_events`): one row per CSV download — `exported_at`, `export_number`, plus snapshots `session_updated_at` and `audit_entry_count` so downloads can be matched to how much cleaning had happened. Analyst identity is not stored in v1.
 
 ## UI vs database
 
@@ -152,6 +171,7 @@ flowchart TB
 | Checkbox selection | No | Per active pattern |
 | Working cell values | `cell_values` | — |
 | Change history | `audit_log_entries` | — |
+| CSV downloads | `export_events` | — |
 
 ## API models
 

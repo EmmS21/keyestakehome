@@ -201,6 +201,7 @@ Use this as a QA matrix; full manual tests at bottom.
 - [x] Duplicate filename blocked (client + API 409)
 - [x] **Status:** Unchanged / Modified via audit log (`POST` session + `GET` audit `total_count`)
 - [x] **Clean** → `router.push(/clean/${datasetId})`
+- [x] **Export** per row → `GET /datasets/{id}/export` (working copy CSV download)
 - [x] Loading / failure states (E3–E4, E5–E7)
 - [x] E2E: `e2e/explorer.spec.ts` (3 specs: empty state, upload, navigate to clean)
 
@@ -293,7 +294,7 @@ Patterns: `negatives` | `refunds` | `double_booking` (not `done`).
 
 - Auth / multi-user
 - Full deal grid in browser (only proposal rows shown)
-- CSV export download
+- ~~CSV export download~~ (explorer Export button + `GET /datasets/{id}/export`)
 - Auto-advance to next tab after Submit
 - Persist `activePattern`, audit open state, or scroll position in URL
 - Tutorial copy for detectors

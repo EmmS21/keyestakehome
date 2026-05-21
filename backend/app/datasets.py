@@ -1,6 +1,7 @@
 """Dataset ingest, parsing, and SQLite persistence."""
 
 import csv
+import io
 import json
 import re
 import shutil
@@ -11,6 +12,7 @@ from pathlib import Path
 from uuid import UUID, uuid4
 
 from backend.app.exceptions import (
+    DatasetNotFoundError,
     DuplicateDatasetNameError,
     EmptyDatasetError,
     InvalidPeriodValueError,
@@ -462,6 +464,75 @@ def list_rows(conn: sqlite3.Connection, dataset_id: UUID) -> list[DatasetRow]:
         (str(dataset_id),),
     ).fetchall()
     return [_row_from_sqlite(r) for r in rows]
+
+
+def _format_export_cell(value: float) -> str:
+    if value == int(value):
+        return str(int(value))
+    return str(value)
+
+
+def _dimension_headers_from_original(
+    original_path: Path, period_column_count: int
+) -> list[str]:
+    """Read dimension column labels from the uploaded CSV header."""
+    with original_path.open(encoding="utf-8", newline="") as handle:
+        reader = csv.reader(handle)
+        try:
+            header = next(reader)
+        except StopIteration:
+            return ["A", "B", "C"]
+    period_start = len(header) - period_column_count
+    if period_start < 1:
+        return ["A", "B", "C"]
+    dims = [cell.strip() or f"Col{i + 1}" for i, cell in enumerate(header[:period_start])]
+    while len(dims) < 3:
+        dims.append(f"Col{len(dims) + 1}")
+    return dims[:3]
+
+
+def export_dataset_csv(conn: sqlite3.Connection, dataset_id: UUID) -> tuple[str, str]:
+    """Build CSV from current cell_values. Returns (download_filename, csv_text)."""
+    try:
+        dataset = get_dataset(conn, dataset_id)
+    except KeyError as exc:
+        raise DatasetNotFoundError(dataset_id) from exc
+
+    original_path = Path(dataset.original_path)
+    dim_headers = (
+        _dimension_headers_from_original(original_path, len(dataset.period_columns))
+        if original_path.is_file()
+        else ["A", "B", "C"]
+    )
+    header = dim_headers + dataset.period_columns
+
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, lineterminator="\n")
+    writer.writerow(header)
+
+    for chunk in iter_row_chunks(conn, dataset_id):
+        row_ids = [row.id for row in chunk]
+        periods_by_row = load_periods_for_rows(
+            conn, row_ids, dataset.period_columns
+        )
+        for row in chunk:
+            periods = periods_by_row[row.id]
+            writer.writerow(
+                [
+                    row.dimension_a or "",
+                    row.dimension_b or "",
+                    row.dimension_c or "",
+                    *[
+                        _format_export_cell(periods[period])
+                        for period in dataset.period_columns
+                    ],
+                ]
+            )
+
+    from backend.app import exports as exports_logic
+
+    exports_logic.record_export(conn, dataset_id)
+    return dataset.name, buffer.getvalue()
 
 
 def list_cell_values(conn: sqlite3.Connection, dataset_row_id: UUID) -> list[CellValue]:

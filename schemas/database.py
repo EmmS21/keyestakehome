@@ -78,3 +78,25 @@ class AuditLogEntry(BaseModel):
     value_before: float
     value_after: float
     created_at: datetime
+
+
+class ExportEvent(BaseModel):
+    """CSV download of the working copy — when and which cleaning version."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    dataset_id: UUID
+    session_id: UUID
+    exported_at: datetime
+    session_updated_at: datetime = Field(
+        description="cleaning_sessions.updated_at at export time",
+    )
+    audit_entry_count: int = Field(
+        ge=0,
+        description="Cell-level audit rows before this export (version snapshot)",
+    )
+    export_number: int = Field(
+        ge=1,
+        description="Nth export for this dataset (1 = first download)",
+    )

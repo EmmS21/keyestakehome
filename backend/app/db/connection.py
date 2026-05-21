@@ -56,6 +56,19 @@ CREATE INDEX IF NOT EXISTS idx_audit_submit
     ON audit_log_entries(session_id, submit_id);
 CREATE INDEX IF NOT EXISTS idx_audit_row
     ON audit_log_entries(dataset_row_id);
+
+CREATE TABLE IF NOT EXISTS export_events (
+    id TEXT PRIMARY KEY,
+    dataset_id TEXT NOT NULL REFERENCES datasets(id),
+    session_id TEXT NOT NULL REFERENCES cleaning_sessions(id),
+    exported_at TEXT NOT NULL,
+    session_updated_at TEXT NOT NULL,
+    audit_entry_count INTEGER NOT NULL,
+    export_number INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_export_events_dataset
+    ON export_events(dataset_id, exported_at);
 """
 
 

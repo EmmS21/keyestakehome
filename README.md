@@ -2,6 +2,15 @@
 
 Take-home: upload deal revenue grids, clean anomalies step-by-step (negatives → refunds → double booking), audit every change.
 
+## Why we track exports
+
+When an analyst downloads a cleaned CSV, the organization needs to answer:
+
+- **Who downloaded what?** — v1 stores *when* and *which version* of the grid was exported, not *who* (no auth yet). See [`docs/limitations.md`](docs/limitations.md).
+- **What version was that file?** — Each export is tied to the cleaning session and snapshots `session_updated_at` plus `audit_entry_count` (how many accepted cell changes were already on the record). Together with `audit_log_entries` (per-cell before/after on Submit), you can retrace what state the exported file reflected.
+
+Cell-level changes stay in the audit log; export timestamps live in `export_events` (separate from per-cell audit rows).
+
 ## Quick start
 
 **Backend** (from repo root):

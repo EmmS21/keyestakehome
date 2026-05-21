@@ -28,6 +28,7 @@ FastAPI generates interactive docs from route handlers and Pydantic models in `s
 | `GET` | `/health` | 200 | Liveness probe |
 | `GET` | `/datasets` | 200 | List uploaded datasets (`id`, `name`, `period_columns`, `row_count`, `uploaded_at`) |
 | `POST` | `/datasets` | 201 / 409 | Upload CSV — multipart field **`file`**; **409** if `name` already exists |
+| `GET` | `/datasets/{dataset_id}/export` | 200 / 404 | Download working copy as CSV (`cell_values`); appends `export_events` row |
 | `POST` | `/datasets/{dataset_id}/sessions` | 201 / 200 | **Create** or **resume** cleaning session (one session per dataset) |
 | `GET` | `/sessions/{session_id}/steps/{pattern}/proposals` | 200 | Paginated proposals + `total_count`. Query: `limit` (default 10), `offset` (default 0) |
 | `POST` | `/sessions/{session_id}/steps/{pattern}/accept` | 200 | Apply selected proposals. Body: `proposal_ids`, `session_updated_at` |
@@ -90,7 +91,9 @@ Frontend owns tab selection, idle default UI, and submit UX. See [`architecture.
 
 - SQLite: `backend/data/app.db` (created on startup)
 - Uploads: `uploads/` at repo root (gitignored)
-- Tables: `datasets`, `dataset_rows`, `cell_values`, `cleaning_sessions`, `audit_log_entries` — see [`docs/database-schema.md`](../docs/database-schema.md)
+- Tables: `datasets`, `dataset_rows`, `cell_values`, `cleaning_sessions`, `audit_log_entries`, `export_events` — see [`docs/database-schema.md`](../docs/database-schema.md)
+
+**Export events:** Each download records `exported_at`, `export_number`, `session_updated_at`, and `audit_entry_count`. Use with the audit log to retrace which cleaning version was exported; analyst identity is not stored in v1.
 
 ## Layout
 

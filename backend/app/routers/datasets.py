@@ -131,6 +131,37 @@ async def upload_dataset(
     )
 
 
+@router.get(
+    "/{dataset_id}/export",
+    summary="Download cleaned CSV",
+    description=(
+        "Exports the working copy (current cell_values) as CSV. "
+        "Appends an export_events row (timestamp + version snapshot) for audit retracing."
+    ),
+    responses={404: {"description": "Dataset not found"}},
+)
+def export_dataset(
+    dataset_id: UUID,
+    db_path: Path = Depends(get_db_path),
+) -> Response:
+    conn = connect(db_path)
+    try:
+        filename, csv_text = datasets_logic.export_dataset_csv(conn, dataset_id)
+    except DatasetNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    finally:
+        conn.close()
+
+    safe_name = filename.replace('"', "")
+    return Response(
+        content=csv_text,
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{safe_name}"',
+        },
+    )
+
+
 @router.post(
     "/{dataset_id}/sessions",
     response_model=SessionCreateResponse,

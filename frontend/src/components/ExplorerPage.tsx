@@ -7,6 +7,7 @@ import {
   ApiError,
   type DatasetSummary,
   datasetHasAuditChanges,
+  downloadDatasetExport,
   listDatasets,
   uploadDataset,
 } from "@/lib/api";
@@ -26,6 +27,8 @@ export function ExplorerPage() {
   const [listError, setListError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [exportingId, setExportingId] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const loadChangeStatus = useCallback(async (rows: DatasetSummary[]) => {
     const statuses = await Promise.all(
@@ -96,6 +99,20 @@ export function ExplorerPage() {
     }
   };
 
+  const handleExport = async (dataset: DatasetRow) => {
+    setExportError(null);
+    setExportingId(dataset.id);
+    try {
+      await downloadDatasetExport(dataset.id, dataset.name);
+    } catch (err) {
+      setExportError(
+        err instanceof ApiError ? err.message : "Export failed. Try again.",
+      );
+    } finally {
+      setExportingId(null);
+    }
+  };
+
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
     if (uploading || loadState === "loading") return;
@@ -127,6 +144,7 @@ export function ExplorerPage() {
         <ErrorBanner message={listError} onRetry={fetchDatasets} />
       ) : null}
       {uploadError ? <ErrorBanner message={uploadError} /> : null}
+      {exportError ? <ErrorBanner message={exportError} /> : null}
 
       <div
         className={`upload-zone${uploading ? " loading" : ""}`}
@@ -190,7 +208,16 @@ export function ExplorerPage() {
                 <td data-testid="dataset-status">
                   {changeStatusLabel(d.hasChanges)}
                 </td>
-                <td>
+                <td className="explorer-actions">
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    data-testid="export-button"
+                    disabled={exportingId === d.id}
+                    onClick={() => void handleExport(d)}
+                  >
+                    {exportingId === d.id ? "Exporting…" : "Export"}
+                  </button>
                   <button
                     type="button"
                     className="btn btn-primary btn-sm"

@@ -5,6 +5,7 @@ import type {
   ProposalsResponse,
   SessionResponse,
 } from "./types";
+import { exportDownloadFilename, getExportUrl } from "./export";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://127.0.0.1:8000";
@@ -154,6 +155,22 @@ export async function datasetHasAuditChanges(datasetId: string): Promise<boolean
   if (!res.ok) throw await parseError(res);
   const data: AuditLogResponse = await res.json();
   return data.total_count > 0;
+}
+
+export async function downloadDatasetExport(
+  datasetId: string,
+  datasetName: string,
+): Promise<void> {
+  const res = await fetch(getExportUrl(API_BASE, datasetId), { cache: "no-store" });
+  if (!res.ok) throw await parseError(res);
+  const blob = await res.blob();
+  const filename = exportDownloadFilename(datasetName);
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 export async function uploadDataset(file: File): Promise<DatasetSummary> {

@@ -49,6 +49,12 @@ body {
   font-size: 0.65rem;
 }
 
+.explorer-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .upload-zone {
   margin: 20px;
   border: 2px dashed #666;

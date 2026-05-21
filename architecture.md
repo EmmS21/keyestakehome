@@ -202,7 +202,7 @@ Each proposal stores: which dataset row, which cells change, before/after values
 - Undo beyond “don’t accept” (optional: single-step undo later)
 - Bulk upload scheduling, API integrations
 - Statistical confidence or ML explanations
-- **Cleaned CSV download** (`GET /datasets/:id/export`) — working copy remains in DB; audit is the v1 artifact for defensibility
+- **Who exported** — export timestamps and version snapshots are stored (`export_events`); analyst identity requires auth (not v1)
 
 ---
 

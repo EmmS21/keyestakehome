@@ -19,6 +19,16 @@ Known boundaries of the design. Intentional for scope, not oversights.
 
 ---
 
+## Export tracking without user identity
+
+**Behavior:** Each `GET /datasets/{id}/export` appends a row to `export_events` with `exported_at`, `export_number` (1st, 2nd, … download for that dataset), `session_updated_at`, and `audit_entry_count` (how many cell-level audit rows existed at download time).
+
+**Limitation:** We do **not** record **who** exported the file (no auth, no user id, no IP logging in v1).
+
+**Rationale:** We still need to retrace **what** left the system and **which version** of the cleaned grid it was — pair `export_events` with `audit_log_entries` (and `session_updated_at`) to reconstruct history. Analyst identity is a later concern when multi-user auth exists.
+
+---
+
 ## Related v1 scope (not limitations of the data model)
 
 - One analyst per dataset session; no collaboration.
