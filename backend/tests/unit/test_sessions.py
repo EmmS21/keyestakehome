@@ -28,7 +28,9 @@ def _session_count(conn, dataset_id) -> int:
     return int(row["c"])
 
 
-def test_start_or_resume_session_creates_then_reuses(tmp_db, tmp_uploads, tmp_path):
+def test_start_session_creates_once_then_resume_returns_same_session(
+    tmp_db, tmp_uploads, tmp_path
+):
     conn, _ = tmp_db
     csv_file = _write_csv(tmp_path, "sample.csv", VALID_CSV)
     dataset = datasets_logic.ingest_dataset(
@@ -53,7 +55,7 @@ def test_start_or_resume_session_creates_then_reuses(tmp_db, tmp_uploads, tmp_pa
     assert _session_count(conn, dataset.id) == 1
 
 
-def test_start_or_resume_session_unknown_dataset_raises(tmp_db):
+def test_start_session_missing_dataset_raises(tmp_db):
     conn, _ = tmp_db
     with pytest.raises(DatasetNotFoundError):
         sessions_logic.start_or_resume_session(conn, uuid4())

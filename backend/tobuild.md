@@ -8,7 +8,7 @@ Run unit tests: `pytest backend/tests/unit -v`
 
 ## Build progress
 
-Last updated after `GET /sessions/{id}/steps/{pattern}/proposals`.
+Last updated after `POST /sessions/{id}/steps/{pattern}/accept`.
 
 ### API endpoints
 
@@ -16,7 +16,7 @@ Last updated after `GET /sessions/{id}/steps/{pattern}/proposals`.
 - [x] `GET /datasets` — list datasets for explorer
 - [x] `POST /datasets/{id}/sessions` — create or resume `cleaning_sessions`
 - [x] `GET /sessions/{id}/steps/{pattern}/proposals` — detectors + pagination + `total_count`
-- [ ] `POST /sessions/{id}/steps/{pattern}/accept` — apply fixes + audit log
+- [x] `POST /sessions/{id}/steps/{pattern}/accept` — apply fixes + audit log
 - [ ] `GET /sessions/{id}/audit` — paginated change log
 - [ ] `GET /datasets/{id}/export` — cleaned CSV download
 - [x] `GET /health` — liveness (no unit tests per guide)
@@ -27,7 +27,7 @@ Last updated after `GET /sessions/{id}/steps/{pattern}/proposals`.
 - [x] `GET /datasets` — empty list; after ingest returns summary with row_count
 - [x] `POST /datasets/{id}/sessions` — create then resume same id; unknown dataset raises
 - [x] `GET .../proposals` — negatives, refunds, double booking, pagination, pipeline data effect (4 tests)
-- [ ] `POST .../accept` — selected updates, empty → `changes: []`, audit rows, bad proposal id
+- [x] `POST .../accept` — selected updates, empty → `changes: []`, audit rows, bad proposal id
 - [ ] `GET .../audit`
 - [ ] `GET .../export`
 
@@ -35,18 +35,19 @@ Last updated after `GET /sessions/{id}/steps/{pattern}/proposals`.
 
 - [x] SQLite schema: `datasets`, `dataset_rows`, `cell_values`
 - [x] SQLite schema: `cleaning_sessions`
-- [ ] SQLite schema: `audit_log_entries`
+- [x] SQLite schema: `audit_log_entries`
 - [x] Dataset ingest + persistence (`app/datasets.py`)
 - [x] Session start/resume (`app/sessions.py`)
 - [x] Proposals service (`app/proposals.py`)
-- [ ] Accept / audit / export services
+- [x] Accept service (`app/accept.py`)
+- [ ] Audit / export services
 - [x] Detectors (negatives, refunds, double booking)
 
 ### Docs / schema (no runtime yet)
 
 - [x] `cleaning_sessions` simplified in docs + `schemas/database.py` (no `current_step`)
 - [x] Manual navigation product rules documented
-- [ ] Accept flow implemented (no step update on submit)
+- [x] Accept flow implemented (no step update on submit)
 
 ### Frontend
 

@@ -6,11 +6,12 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
+from backend.app import accept as accept_logic
 from backend.app import proposals as proposals_logic
 from backend.app.db.connection import connect
 from backend.app.dependencies import get_db_path
-from backend.app.exceptions import SessionNotFoundError
-from schemas.api import ProposalsResponse
+from backend.app.exceptions import ProposalNotFoundError, SessionNotFoundError
+from schemas.api import AcceptRequest, AcceptResponse, ProposalsResponse
 from schemas.types import CleaningPattern
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
@@ -47,3 +48,31 @@ def list_proposals(
         limit=page.limit,
         offset=page.offset,
     )
+
+
+@router.post(
+    "/{session_id}/steps/{pattern}/accept",
+    response_model=AcceptResponse,
+)
+def accept_proposals(
+    session_id: UUID,
+    pattern: CleaningPattern,
+    body: AcceptRequest,
+    db_path: Path = Depends(get_db_path),
+) -> AcceptResponse:
+    if pattern == CleaningPattern.DONE:
+        raise HTTPException(status_code=400, detail="Pattern 'done' cannot be accepted")
+
+    conn = connect(db_path)
+    try:
+        result = accept_logic.accept_proposals(
+            conn, session_id, pattern, body.proposal_ids
+        )
+    except SessionNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ProposalNotFoundError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    finally:
+        conn.close()
+
+    return AcceptResponse(submit_id=result.submit_id, changes=result.changes)

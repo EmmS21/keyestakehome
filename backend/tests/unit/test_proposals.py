@@ -38,7 +38,9 @@ def _ingest_sample_session(conn, tmp_uploads, tmp_path):
     return dataset, session
 
 
-def test_sample_csv_all_three_detectors(tmp_db, tmp_uploads, tmp_path):
+def test_list_proposals_detects_negatives_refunds_and_double_booking_on_sample_csv(
+    tmp_db, tmp_uploads, tmp_path
+):
     conn, _ = tmp_db
     dataset, session = _ingest_sample_session(conn, tmp_uploads, tmp_path)
 
@@ -71,7 +73,9 @@ def test_sample_csv_all_three_detectors(tmp_db, tmp_uploads, tmp_path):
     assert by_period["202402"] == (0.0, 50.0)
 
 
-def test_proposals_pagination_page_and_total_count(tmp_db, tmp_uploads, tmp_path):
+def test_list_proposals_pagination_returns_pages_with_stable_total_count(
+    tmp_db, tmp_uploads, tmp_path
+):
     conn, _ = tmp_db
     _, session = _ingest_sample_session(conn, tmp_uploads, tmp_path)
 
@@ -96,7 +100,9 @@ def test_proposals_pagination_page_and_total_count(tmp_db, tmp_uploads, tmp_path
     assert past_end.proposals == []
 
 
-def test_refunds_count_drops_after_working_copy_updated(tmp_db, tmp_uploads, tmp_path):
+def test_list_proposals_refund_count_drops_after_working_copy_is_updated(
+    tmp_db, tmp_uploads, tmp_path
+):
     conn, _ = tmp_db
     dataset, session = _ingest_sample_session(conn, tmp_uploads, tmp_path)
 
@@ -126,7 +132,7 @@ def test_refunds_count_drops_after_working_copy_updated(tmp_db, tmp_uploads, tmp
     assert all(p.dataset_row_id != bird.id for p in after.proposals)
 
 
-def test_list_proposals_unknown_session_raises(tmp_db):
+def test_list_proposals_missing_session_raises(tmp_db):
     conn, _ = tmp_db
     with pytest.raises(SessionNotFoundError):
         proposals_logic.list_proposals(

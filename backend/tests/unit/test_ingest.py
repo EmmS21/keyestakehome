@@ -26,7 +26,9 @@ def _write_csv(tmp_path, filename: str, content: str):
     return path
 
 
-def test_ingest_valid_sample_csv_stores_grid(tmp_db, tmp_uploads, tmp_path):
+def test_ingest_sample_csv_persists_dataset_rows_and_cell_values(
+    tmp_db, tmp_uploads, tmp_path
+):
     conn, _ = tmp_db
     csv_file = _write_csv(tmp_path, "sample.csv", VALID_CSV)
     dataset = datasets_logic.ingest_dataset(
@@ -66,25 +68,25 @@ def test_ingest_valid_sample_csv_stores_grid(tmp_db, tmp_uploads, tmp_path):
     assert len(cells) == 5
 
 
-def test_ingest_rejects_empty_file(tmp_path):
+def test_ingest_raises_when_csv_file_is_empty(tmp_path):
     empty = _write_csv(tmp_path, "empty.csv", "")
     with pytest.raises(EmptyDatasetError):
         datasets_logic.parse_csv(empty)
 
 
-def test_ingest_rejects_header_only(tmp_path):
+def test_ingest_raises_when_csv_has_header_but_no_data_rows(tmp_path):
     header_only = _write_csv(tmp_path, "header.csv", "A,B,C,202401,202402\n")
     with pytest.raises(NoDataRowsError):
         datasets_logic.parse_csv(header_only)
 
 
-def test_ingest_rejects_no_period_columns(tmp_path):
+def test_ingest_raises_when_csv_has_no_yyyymm_period_columns(tmp_path):
     no_periods = _write_csv(tmp_path, "dims.csv", "A,B,C\nDog,China,Line\n")
     with pytest.raises(NoPeriodColumnsError):
         datasets_logic.parse_csv(no_periods)
 
 
-def test_ingest_rejects_non_numeric_period_value(tmp_path):
+def test_ingest_raises_when_period_cell_is_not_numeric(tmp_path):
     bad = _write_csv(
         tmp_path,
         "bad.csv",

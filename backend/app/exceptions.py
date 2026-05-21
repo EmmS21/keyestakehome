@@ -33,6 +33,14 @@ class SessionNotFoundError(Exception):
         super().__init__(f"Session not found: {session_id}")
 
 
+class ProposalNotFoundError(Exception):
+    """Proposal id is missing or not valid for this session and pattern."""
+
+    def __init__(self, proposal_id: str) -> None:
+        self.proposal_id = proposal_id
+        super().__init__(f"Proposal not found: {proposal_id}")
+
+
 class InvalidPeriodValueError(IngestError):
     """A period cell is not numeric."""
 

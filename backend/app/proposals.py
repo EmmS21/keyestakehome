@@ -56,6 +56,17 @@ def _build_proposals(
     return proposals
 
 
+def list_all_proposals(
+    conn: sqlite3.Connection,
+    session_id: UUID,
+    pattern: CleaningPattern,
+) -> list[Proposal]:
+    """All proposals for a session/pattern (used by accept to resolve proposal_ids)."""
+    session = get_session(conn, session_id)
+    dataset = datasets_logic.get_dataset(conn, session.dataset_id)
+    return _build_proposals(conn, dataset.id, dataset.period_columns, pattern)
+
+
 def list_proposals(
     conn: sqlite3.Connection,
     session_id: UUID,

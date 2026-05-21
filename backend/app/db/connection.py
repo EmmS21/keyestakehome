@@ -37,6 +37,25 @@ CREATE TABLE IF NOT EXISTS cleaning_sessions (
 
 CREATE INDEX IF NOT EXISTS idx_cleaning_sessions_dataset
     ON cleaning_sessions(dataset_id);
+
+CREATE TABLE IF NOT EXISTS audit_log_entries (
+    id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL REFERENCES cleaning_sessions(id),
+    submit_id TEXT NOT NULL,
+    pattern TEXT NOT NULL,
+    dataset_row_id TEXT NOT NULL REFERENCES dataset_rows(id),
+    period TEXT NOT NULL,
+    value_before REAL NOT NULL,
+    value_after REAL NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_session
+    ON audit_log_entries(session_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_audit_submit
+    ON audit_log_entries(session_id, submit_id);
+CREATE INDEX IF NOT EXISTS idx_audit_row
+    ON audit_log_entries(dataset_row_id);
 """
 
 

@@ -18,12 +18,14 @@ def _write_csv(tmp_path, filename: str, content: str):
     return path
 
 
-def test_list_datasets_empty_db(tmp_db):
+def test_list_datasets_returns_empty_list_when_database_has_no_uploads(tmp_db):
     conn, _ = tmp_db
     assert datasets_logic.list_datasets(conn) == []
 
 
-def test_list_datasets_after_ingest(tmp_db, tmp_uploads, tmp_path):
+def test_list_datasets_returns_summary_with_row_count_after_ingest(
+    tmp_db, tmp_uploads, tmp_path
+):
     conn, _ = tmp_db
     csv_file = _write_csv(tmp_path, "sample.csv", VALID_CSV)
     ingested = datasets_logic.ingest_dataset(
