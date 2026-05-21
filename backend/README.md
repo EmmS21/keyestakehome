@@ -73,7 +73,9 @@ FastAPI generates interactive docs from route handlers and Pydantic models in `s
 
 **Audit (`GET .../audit`)**
 
-- `entries[]`: `pattern`, `submit_id`, row, period, before/after, `created_at`
+- Merged timeline from `audit_log_entries` + `export_events`, sorted by `created_at`
+- `entries[]` discriminated by `kind`: `alteration` (cell fix fields + `submit_id`, `pattern`) or `download` (`export_number`, `audit_entry_count`)
+- Query `event`: `all` | `alteration` | `download`
 
 ## Product rules (server)
 

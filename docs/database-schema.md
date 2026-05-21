@@ -147,20 +147,19 @@ sequenceDiagram
 ## Audit
 
 ```mermaid
-flowchart TB
+flowchart LR
   AL[audit_log_entries]
   EX[export_events]
-  Submit --> SID[submit_id]
-  SID --> AL
-  AL --> SG[group by submit_id]
-  pattern --> AL
-  Download["GET export"] --> EX
-  EX -->|audit_entry_count + session_updated_at| Version[version snapshot]
+  Submit --> AL
+  GETexport["GET export"] --> EX
+  AL --> Timeline
+  EX --> Timeline
+  Timeline["GET .../audit timeline"]
 ```
 
-**Cell changes** (`audit_log_entries`): one row per accepted cell, grouped by `submit_id`.
+**Persisted:** `audit_log_entries` — one row per accepted cell (`submit_id` groups one Submit). `export_events` — one row per CSV download (`export_number`, `session_updated_at`, `audit_entry_count` snapshot).
 
-**Exports** (`export_events`): one row per CSV download — `exported_at`, `export_number`, plus snapshots `session_updated_at` and `audit_entry_count` so downloads can be matched to how much cleaning had happened. Analyst identity is not stored in v1.
+**`GET .../audit`:** merges both tables into one chronological `entries[]` (`kind`: `alteration` | `download`). Query `event` filters: `all`, `alteration`, or `download`. Paginated in memory after merge.
 
 ## UI vs database
 
@@ -217,7 +216,8 @@ classDiagram
     changes
   }
 
-  class AuditLogEntryView {
+  class AuditAlterationEntry {
+    kind alteration
     id
     submit_id
     pattern
@@ -228,6 +228,14 @@ classDiagram
     created_at
   }
 
+  class AuditDownloadEntry {
+    kind download
+    id
+    created_at
+    export_number
+    audit_entry_count
+  }
+
   class AuditLogResponse {
     entries
     total_count
@@ -236,7 +244,8 @@ classDiagram
   Proposal *-- CellChange
   ProposalsResponse o-- Proposal
   AcceptResponse *-- AppliedCellChange
-  AuditLogResponse o-- AuditLogEntryView
+  AuditLogResponse o-- AuditAlterationEntry
+  AuditLogResponse o-- AuditDownloadEntry
 ```
 
 ## Field mapping
