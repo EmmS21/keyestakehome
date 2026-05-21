@@ -1,11 +1,9 @@
-import { readFileSync, writeFileSync } from "fs";
-import { basename, join } from "path";
+import { basename } from "path";
 import { test, expect } from "@playwright/test";
 
-import { escapeRegex } from "./helpers";
+import { datasetRow, uniqueSampleCopy } from "./helpers";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
-const SAMPLE_CSV = join(__dirname, "../../data/sample.csv");
 
 async function requireBackend(
   request: import("@playwright/test").APIRequestContext,
@@ -18,17 +16,6 @@ async function requireBackend(
   } catch {
     test.skip(true, "Backend not running at " + API_URL);
   }
-}
-
-function uniqueSampleCopy(): string {
-  const content = readFileSync(SAMPLE_CSV, "utf-8");
-  const path = join(
-    __dirname,
-    "fixtures",
-    `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.csv`,
-  );
-  writeFileSync(path, content);
-  return path;
 }
 
 test.describe("File Explorer", () => {
@@ -70,7 +57,7 @@ test.describe("File Explorer", () => {
     await expect(page.getByTestId("error-banner")).toHaveCount(0);
 
     await expect(page.getByTestId("dataset-table")).toBeVisible();
-    const row = page.getByRole("row", { name: new RegExp(escapeRegex(fileName)) });
+    const row = datasetRow(page, fileName);
     await expect(row).toBeVisible({ timeout: 15_000 });
     await expect(row.getByTestId("dataset-status")).toHaveText("Unchanged");
     await expect(page.getByTestId("clean-button").first()).toBeEnabled();
@@ -88,7 +75,7 @@ test.describe("File Explorer", () => {
     });
     await expect(page.getByTestId("error-banner")).toHaveCount(0);
     const fileName = basename(filePath);
-    const row = page.getByRole("row", { name: new RegExp(escapeRegex(fileName)) });
+    const row = datasetRow(page, fileName);
     await expect(row).toBeVisible({ timeout: 15_000 });
     await row.getByTestId("clean-button").click();
 

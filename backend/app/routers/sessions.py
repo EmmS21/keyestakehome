@@ -19,6 +19,7 @@ from backend.app.exceptions import (
 from schemas.api import (
     AcceptRequest,
     AcceptResponse,
+    AuditEventFilter,
     AuditLogResponse,
     ProposalsResponse,
 )
@@ -118,19 +119,30 @@ def accept_proposals(
     "/{session_id}/audit",
     response_model=AuditLogResponse,
     summary="List audit log",
-    description="Paginated cell-level change history for the session.",
+    description=(
+        "Paginated timeline for the session: accepted cell alterations and "
+        "CSV download events. Query `event` filters by kind."
+    ),
     responses={404: {"description": "Session not found"}},
 )
 def list_audit(
     session_id: UUID,
     limit: int = Query(10, ge=1),
     offset: int = Query(0, ge=0),
+    event: AuditEventFilter = Query(
+        "all",
+        description="Filter timeline: all, alteration (cell fixes), or download",
+    ),
     db_path: Path = Depends(get_db_path),
 ) -> AuditLogResponse:
     conn = connect(db_path)
     try:
         page = audit_logic.list_audit(
-            conn, session_id, limit=limit, offset=offset
+            conn,
+            session_id,
+            limit=limit,
+            offset=offset,
+            event_filter=event,
         )
     except SessionNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

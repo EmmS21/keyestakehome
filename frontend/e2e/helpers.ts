@@ -23,6 +23,11 @@ export async function requireBackend(
   }
 }
 
+/** Dataset table row containing the given file name. */
+export function datasetRow(page: Page, fileName: string) {
+  return page.getByTestId("dataset-row").filter({ hasText: fileName });
+}
+
 export function uniqueSampleCopy(): string {
   const content = readFileSync(SAMPLE_CSV, "utf-8");
   const path = join(
@@ -49,7 +54,7 @@ export async function goToWorkspace(
     timeout: 20_000,
   });
   await expect(page.getByTestId("error-banner")).toHaveCount(0);
-  const row = page.getByRole("row", { name: new RegExp(escapeRegex(fileName)) });
+  const row = datasetRow(page, fileName);
   await expect(row).toBeVisible({ timeout: 15_000 });
   await row.getByTestId("clean-button").click();
 
@@ -65,4 +70,40 @@ export async function goToWorkspace(
 export async function openNegativesTab(page: Page) {
   await page.getByTestId("pattern-tab-negatives").click();
   await expect(page.getByTestId("compare-area")).toBeVisible();
+}
+
+export type PatternBadges = Record<
+  "negatives" | "refunds" | "double_booking",
+  string
+>;
+
+/** Sidebar badge counts after the workspace has finished loading counts. */
+export async function readPatternBadges(page: Page): Promise<PatternBadges> {
+  return {
+    negatives: await page.getByTestId("pattern-badge-negatives").innerText(),
+    refunds: await page.getByTestId("pattern-badge-refunds").innerText(),
+    double_booking: await page
+      .getByTestId("pattern-badge-double_booking")
+      .innerText(),
+  };
+}
+
+export async function expectPatternBadges(
+  page: Page,
+  expected: PatternBadges,
+  options?: { timeout?: number },
+) {
+  const timeout = options?.timeout ?? 5_000;
+  await expect(page.getByTestId("pattern-badge-negatives")).toHaveText(
+    expected.negatives,
+    { timeout },
+  );
+  await expect(page.getByTestId("pattern-badge-refunds")).toHaveText(
+    expected.refunds,
+    { timeout },
+  );
+  await expect(page.getByTestId("pattern-badge-double_booking")).toHaveText(
+    expected.double_booking,
+    { timeout },
+  );
 }

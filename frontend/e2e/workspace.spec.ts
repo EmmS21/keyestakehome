@@ -1,6 +1,12 @@
 import { expect, test } from "@playwright/test";
 
-import { goToWorkspace, openNegativesTab, requireBackend } from "./helpers";
+import {
+  expectPatternBadges,
+  goToWorkspace,
+  openNegativesTab,
+  readPatternBadges,
+  requireBackend,
+} from "./helpers";
 
 test.describe("Cleaning Workspace", () => {
   test("workspace-loads-idle-with-pattern-badges", async ({ page, request }) => {
@@ -147,7 +153,7 @@ test.describe("Cleaning Workspace", () => {
 
     await page.getByTestId("audit-toggle").click();
     await expect(page.getByTestId("audit-sidebar")).toBeVisible();
-    await expect(page.getByTestId("audit-empty")).toHaveText(/No changes yet/);
+    await expect(page.getByTestId("audit-empty")).toHaveText(/No activity yet/);
 
     await page.getByTestId("audit-toggle").click();
     await openNegativesTab(page);
@@ -160,6 +166,58 @@ test.describe("Cleaning Workspace", () => {
     await page.getByTestId("audit-toggle").click();
     await expect(page.getByTestId("audit-table")).toBeVisible();
     await expect(page.getByTestId("audit-row").first()).toBeVisible();
+  });
+
+  test("workspace-resumes-partial-work-after-reload", async ({
+    page,
+    request,
+  }) => {
+    await goToWorkspace(page, request);
+    await openNegativesTab(page);
+    await page.getByTestId("proposal-checkbox").first().check();
+    await page.getByTestId("submit-button").click();
+    await expect(page.getByTestId("pattern-badge-negatives")).toHaveText("3");
+    const badgesAfterAccept = await readPatternBadges(page);
+
+    const workspaceUrl = page.url();
+    await page.getByTestId("audit-toggle").click();
+    await expect(page.getByTestId("audit-row")).toHaveCount(1);
+
+    await page.reload();
+    await expect(page.getByTestId("workspace-shell")).toBeVisible();
+    await expect(page).toHaveURL(workspaceUrl);
+    await expectPatternBadges(page, badgesAfterAccept, { timeout: 15_000 });
+
+    await page.getByTestId("audit-toggle").click();
+    await expect(page.getByTestId("audit-row")).toHaveCount(1);
+  });
+
+  test("workspace-resumes-partial-work-in-new-browser-context", async ({
+    page,
+    browser,
+    request,
+  }) => {
+    await goToWorkspace(page, request);
+    await openNegativesTab(page);
+    await page.getByTestId("proposal-checkbox").first().check();
+    await page.getByTestId("submit-button").click();
+    await expect(page.getByTestId("pattern-badge-negatives")).toHaveText("3");
+    const badgesAfterAccept = await readPatternBadges(page);
+
+    const workspaceUrl = page.url();
+
+    const fresh = await browser.newContext();
+    const resumed = await fresh.newPage();
+    try {
+      await resumed.goto(workspaceUrl);
+      await expect(resumed.getByTestId("workspace-shell")).toBeVisible();
+      await expectPatternBadges(resumed, badgesAfterAccept, { timeout: 15_000 });
+
+      await resumed.getByTestId("audit-toggle").click();
+      await expect(resumed.getByTestId("audit-row")).toHaveCount(1);
+    } finally {
+      await fresh.close();
+    }
   });
 
   test("workspace-invalid-dataset-redirects-to-explorer", async ({

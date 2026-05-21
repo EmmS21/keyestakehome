@@ -23,10 +23,12 @@ import {
   readSelection,
   writeSelection,
 } from "@/lib/workspace-storage";
+import { formatUtcDateTime } from "@/lib/format";
 import {
   PATTERN_LABELS,
   PATTERNS,
-  type AuditEntry,
+  type AuditEventFilter,
+  type AuditTimelineEntry,
   type CleaningPattern,
   type Proposal,
 } from "@/lib/types";
@@ -34,6 +36,34 @@ import {
 const PROPOSALS_PAGE = 10;
 const AUDIT_PAGE = 20;
 const TOAST_MS = 5000;
+const AUDIT_SIDEBAR_WIDTH_KEY = "audit-sidebar-width";
+const AUDIT_SIDEBAR_DEFAULT = 340;
+const AUDIT_SIDEBAR_MIN = 280;
+const AUDIT_SIDEBAR_MAX = 640;
+
+function auditSidebarMaxWidth(): number {
+  if (typeof window === "undefined") return AUDIT_SIDEBAR_MAX;
+  return Math.min(AUDIT_SIDEBAR_MAX, Math.floor(window.innerWidth * 0.55));
+}
+
+function clampAuditSidebarWidth(width: number): number {
+  return Math.min(
+    auditSidebarMaxWidth(),
+    Math.max(AUDIT_SIDEBAR_MIN, Math.round(width)),
+  );
+}
+
+function readStoredAuditSidebarWidth(): number {
+  if (typeof window === "undefined") return AUDIT_SIDEBAR_DEFAULT;
+  try {
+    const raw = localStorage.getItem(AUDIT_SIDEBAR_WIDTH_KEY);
+    if (!raw) return AUDIT_SIDEBAR_DEFAULT;
+    const n = Number.parseInt(raw, 10);
+    return Number.isFinite(n) ? clampAuditSidebarWidth(n) : AUDIT_SIDEBAR_DEFAULT;
+  } catch {
+    return AUDIT_SIDEBAR_DEFAULT;
+  }
+}
 
 type Props = { datasetId: string };
 
@@ -74,10 +104,15 @@ export function CleaningWorkspacePage({ datasetId }: Props) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [auditOpen, setAuditOpen] = useState(false);
-  const [auditEntries, setAuditEntries] = useState<AuditEntry[]>([]);
+  const [auditFilter, setAuditFilter] = useState<AuditEventFilter>("all");
+  const [auditEntries, setAuditEntries] = useState<AuditTimelineEntry[]>([]);
   const [auditTotal, setAuditTotal] = useState(0);
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditLoadingMore, setAuditLoadingMore] = useState(false);
+  const [auditSidebarWidth, setAuditSidebarWidth] = useState(
+    AUDIT_SIDEBAR_DEFAULT,
+  );
+  const [auditResizing, setAuditResizing] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [toastSeconds, setToastSeconds] = useState(5);
 
@@ -86,6 +121,9 @@ export function CleaningWorkspacePage({ datasetId }: Props) {
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const syncingScroll = useRef(false);
   const toastTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const auditResizeRef = useRef<{ startX: number; startWidth: number } | null>(
+    null,
+  );
 
   const showToast = useCallback((message: string) => {
     setToast(message);
@@ -261,7 +299,12 @@ export function CleaningWorkspacePage({ datasetId }: Props) {
       if (reset) setAuditLoading(true);
       else setAuditLoadingMore(true);
       try {
-        const page = await fetchAudit(sessionId, AUDIT_PAGE, offset);
+        const page = await fetchAudit(
+          sessionId,
+          AUDIT_PAGE,
+          offset,
+          auditFilter,
+        );
         setAuditTotal(page.total_count);
         setAuditEntries((prev) =>
           reset ? page.entries : [...prev, ...page.entries],
@@ -275,7 +318,7 @@ export function CleaningWorkspacePage({ datasetId }: Props) {
         setAuditLoadingMore(false);
       }
     },
-    [sessionId, auditEntries.length, showToast],
+    [sessionId, auditEntries.length, showToast, auditFilter],
   );
 
   const handleSubmit = useCallback(async () => {
@@ -337,10 +380,65 @@ export function CleaningWorkspacePage({ datasetId }: Props) {
   ]);
 
   useEffect(() => {
-    if (auditOpen && sessionId && auditEntries.length === 0 && !auditLoading) {
-      void loadAudit(true);
-    }
-  }, [auditOpen, sessionId, auditEntries.length, auditLoading, loadAudit]);
+    if (!auditOpen || !sessionId) return;
+    setAuditEntries([]);
+    void loadAudit(true);
+  }, [auditOpen, sessionId, auditFilter]); // eslint-disable-line react-hooks/exhaustive-deps -- reload when filter or open changes
+
+  useEffect(() => {
+    setAuditSidebarWidth(readStoredAuditSidebarWidth());
+  }, []);
+
+  useEffect(() => {
+    const onWindowResize = () => {
+      setAuditSidebarWidth((w) => clampAuditSidebarWidth(w));
+    };
+    window.addEventListener("resize", onWindowResize);
+    return () => window.removeEventListener("resize", onWindowResize);
+  }, []);
+
+  useEffect(() => {
+    if (!auditResizing) return;
+
+    const onMove = (e: MouseEvent) => {
+      const drag = auditResizeRef.current;
+      if (!drag) return;
+      const delta = drag.startX - e.clientX;
+      setAuditSidebarWidth(clampAuditSidebarWidth(drag.startWidth + delta));
+    };
+
+    const onUp = () => {
+      auditResizeRef.current = null;
+      setAuditResizing(false);
+      document.body.classList.remove("audit-resize-active");
+      setAuditSidebarWidth((w) => {
+        const clamped = clampAuditSidebarWidth(w);
+        try {
+          localStorage.setItem(AUDIT_SIDEBAR_WIDTH_KEY, String(clamped));
+        } catch {
+          /* ignore quota / private mode */
+        }
+        return clamped;
+      });
+    };
+
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+    return () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+  }, [auditResizing]);
+
+  const startAuditSidebarResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    auditResizeRef.current = {
+      startX: e.clientX,
+      startWidth: auditSidebarWidth,
+    };
+    setAuditResizing(true);
+    document.body.classList.add("audit-resize-active");
+  };
 
   useEffect(() => {
     if (!activePattern || !loadMoreRef.current) return;
@@ -715,9 +813,21 @@ export function CleaningWorkspacePage({ datasetId }: Props) {
         </main>
 
         <aside
-          className={`audit-sidebar${auditOpen ? "" : " is-hidden"}`}
+          className={`audit-sidebar${auditOpen ? "" : " is-hidden"}${auditResizing ? " is-resizing" : ""}`}
           data-testid="audit-sidebar"
+          style={{ width: auditSidebarWidth }}
         >
+          <div
+            className="audit-sidebar-resizer"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize audit log panel"
+            aria-valuemin={AUDIT_SIDEBAR_MIN}
+            aria-valuemax={auditSidebarMaxWidth()}
+            aria-valuenow={auditSidebarWidth}
+            data-testid="audit-sidebar-resizer"
+            onMouseDown={startAuditSidebarResize}
+          />
           <div className="audit-sidebar-header">
             <span>Audit log</span>
             <button
@@ -728,6 +838,43 @@ export function CleaningWorkspacePage({ datasetId }: Props) {
             >
               ×
             </button>
+          </div>
+          <p className="audit-legend" data-testid="audit-legend">
+            <span className="audit-legend-item">
+              <span
+                className="audit-legend-swatch audit-legend-swatch--alteration"
+                aria-hidden
+              />
+              Alterations — accepted cell fixes
+            </span>
+            <span className="audit-legend-item">
+              <span
+                className="audit-legend-swatch audit-legend-swatch--download"
+                aria-hidden
+              />
+              Downloads — CSV exports
+            </span>
+            <span className="audit-legend-utc">Times shown in UTC</span>
+          </p>
+          <div className="audit-filters" role="group" aria-label="Filter audit log">
+            {(
+              [
+                ["all", "All"],
+                ["alteration", "Alterations"],
+                ["download", "Downloads"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className={`audit-filter-btn${auditFilter === value ? " is-active" : ""}`}
+                data-testid={`audit-filter-${value}`}
+                aria-pressed={auditFilter === value}
+                onClick={() => setAuditFilter(value)}
+              >
+                {label}
+              </button>
+            ))}
           </div>
           <div
             className="audit-sidebar-body"
@@ -752,9 +899,13 @@ export function CleaningWorkspacePage({ datasetId }: Props) {
               <p className="audit-sidebar-empty">Loading…</p>
             ) : auditTotal === 0 ? (
               <p className="audit-sidebar-empty" data-testid="audit-empty">
-                No changes yet
+                {auditFilter === "alteration"
+                  ? "No alterations yet"
+                  : auditFilter === "download"
+                    ? "No downloads yet"
+                    : "No activity yet"}
               </p>
-            ) : (
+            ) : auditFilter === "alteration" ? (
               <table className="data" data-testid="audit-table">
                 <thead>
                   <tr>
@@ -767,24 +918,118 @@ export function CleaningWorkspacePage({ datasetId }: Props) {
                   </tr>
                 </thead>
                 <tbody>
-                  {auditEntries.map((e) => (
-                    <tr key={e.id} data-testid="audit-row">
-                      <td>
-                        {new Date(e.created_at).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </td>
-                      <td>{patternShort(e.pattern)}</td>
-                      <td>{e.dataset_row_id.slice(0, 8)}…</td>
-                      <td>{e.period}</td>
-                      <td>{formatCell(e.value_before)}</td>
-                      <td>{formatCell(e.value_after)}</td>
-                    </tr>
-                  ))}
+                  {auditEntries.map((e) => {
+                    if (e.kind !== "alteration") return null;
+                    return (
+                      <tr
+                        key={e.id}
+                        className="audit-row-alteration"
+                        data-testid="audit-row"
+                        data-audit-kind="alteration"
+                      >
+                        <td>{formatUtcDateTime(e.created_at)}</td>
+                        <td>{patternShort(e.pattern)}</td>
+                        <td>{e.dataset_row_id.slice(0, 8)}…</td>
+                        <td>{e.period}</td>
+                        <td>{formatCell(e.value_before)}</td>
+                        <td>{formatCell(e.value_after)}</td>
+                      </tr>
+                    );
+                  })}
                   {auditLoadingMore ? (
                     <tr>
                       <td colSpan={6}>Loading more…</td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            ) : auditFilter === "download" ? (
+              <table className="data" data-testid="audit-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Export</th>
+                    <th>Snapshot</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {auditEntries.map((e) => {
+                    if (e.kind !== "download") return null;
+                    return (
+                      <tr
+                        key={e.id}
+                        className="audit-row-download"
+                        data-testid="audit-row"
+                        data-audit-kind="download"
+                      >
+                        <td>{formatUtcDateTime(e.created_at)}</td>
+                        <td>#{e.export_number}</td>
+                        <td>
+                          {e.audit_entry_count === 0
+                            ? "Before any alterations"
+                            : `After ${e.audit_entry_count} alteration${e.audit_entry_count === 1 ? "" : "s"}`}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {auditLoadingMore ? (
+                    <tr>
+                      <td colSpan={3}>Loading more…</td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            ) : (
+              <table className="data" data-testid="audit-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Type</th>
+                    <th>Pattern</th>
+                    <th>Row</th>
+                    <th>Period</th>
+                    <th>Before</th>
+                    <th>After</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {auditEntries.map((e) =>
+                    e.kind === "download" ? (
+                      <tr
+                        key={e.id}
+                        className="audit-row-download"
+                        data-testid="audit-row"
+                        data-audit-kind="download"
+                      >
+                        <td>{formatUtcDateTime(e.created_at)}</td>
+                        <td>Download</td>
+                        <td colSpan={5}>
+                          Export #{e.export_number}
+                          {e.audit_entry_count === 0
+                            ? " · before any alterations"
+                            : ` · after ${e.audit_entry_count} alteration${e.audit_entry_count === 1 ? "" : "s"}`}
+                        </td>
+                      </tr>
+                    ) : (
+                      <tr
+                        key={e.id}
+                        className="audit-row-alteration"
+                        data-testid="audit-row"
+                        data-audit-kind="alteration"
+                      >
+                        <td>{formatUtcDateTime(e.created_at)}</td>
+                        <td>Alteration</td>
+                        <td>{patternShort(e.pattern)}</td>
+                        <td>{e.dataset_row_id.slice(0, 8)}…</td>
+                        <td>{e.period}</td>
+                        <td>{formatCell(e.value_before)}</td>
+                        <td>{formatCell(e.value_after)}</td>
+                      </tr>
+                    ),
+                  )}
+                  {auditLoadingMore ? (
+                    <tr>
+                      <td colSpan={7}>Loading more…</td>
                     </tr>
                   ) : null}
                 </tbody>
@@ -793,7 +1038,8 @@ export function CleaningWorkspacePage({ datasetId }: Props) {
             {auditEntries.length > 0 &&
             auditEntries.length >= auditTotal ? (
               <p className="list-end-marker">
-                End of audit log — all {auditTotal} changes loaded
+                End of log — all {auditTotal}{" "}
+                {auditTotal === 1 ? "event" : "events"} loaded
               </p>
             ) : null}
           </div>

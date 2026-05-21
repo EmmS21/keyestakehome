@@ -1,5 +1,6 @@
 import type {
   AcceptResponse,
+  AuditEventFilter,
   AuditLogResponse,
   CleaningPattern,
   ProposalsResponse,
@@ -132,10 +133,12 @@ export async function fetchAudit(
   sessionId: string,
   limit: number,
   offset: number,
+  event: AuditEventFilter = "all",
 ): Promise<AuditLogResponse> {
   const params = new URLSearchParams({
     limit: String(limit),
     offset: String(offset),
+    event,
   });
   const res = await fetch(
     `${API_BASE}/sessions/${sessionId}/audit?${params}`,

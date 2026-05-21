@@ -48,7 +48,10 @@ export type AcceptResponse = {
   }[];
 };
 
-export type AuditEntry = {
+export type AuditEventFilter = "all" | "alteration" | "download";
+
+export type AuditAlterationEntry = {
+  kind: "alteration";
   id: string;
   submit_id: string;
   pattern: CleaningPattern;
@@ -59,8 +62,18 @@ export type AuditEntry = {
   created_at: string;
 };
 
+export type AuditDownloadEntry = {
+  kind: "download";
+  id: string;
+  created_at: string;
+  export_number: number;
+  audit_entry_count: number;
+};
+
+export type AuditTimelineEntry = AuditAlterationEntry | AuditDownloadEntry;
+
 export type AuditLogResponse = {
-  entries: AuditEntry[];
+  entries: AuditTimelineEntry[];
   total_count: number;
 };
 

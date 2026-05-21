@@ -7,6 +7,7 @@ import pytest
 from backend.app import accept as accept_logic
 from backend.app import audit as audit_logic
 from backend.app import datasets as datasets_logic
+from schemas.api import AuditDownloadEntry
 from backend.app import proposals as proposals_logic
 from backend.app import sessions as sessions_logic
 from backend.app.exceptions import SessionNotFoundError
@@ -74,6 +75,7 @@ def test_list_audit_shows_what_accept_saved(tmp_db, tmp_uploads, tmp_path):
     assert page.total_count == 1
     assert len(page.entries) == 1
     entry = page.entries[0]
+    assert entry.kind == "alteration"
     assert entry.submit_id == result.submit_id
     assert entry.pattern == CleaningPattern.NEGATIVES
     assert entry.dataset_row_id == dog_china.dataset_row_id
@@ -137,3 +139,81 @@ def test_list_audit_only_this_sessions_changes(tmp_db, tmp_uploads, tmp_path):
 
     with pytest.raises(SessionNotFoundError):
         audit_logic.list_audit(conn, uuid4(), limit=10, offset=0)
+
+
+def test_list_audit_includes_download_events(tmp_db, tmp_uploads, tmp_path):
+    conn, _ = tmp_db
+    dataset, session = _ingest_sample_session(conn, tmp_uploads, tmp_path)
+
+    datasets_logic.export_dataset_csv(conn, dataset.id)
+
+    page = audit_logic.list_audit(conn, session.id, limit=10, offset=0)
+
+    assert page.total_count == 1
+    assert len(page.entries) == 1
+    entry = page.entries[0]
+    assert isinstance(entry, AuditDownloadEntry)
+    assert entry.kind == "download"
+    assert entry.export_number == 1
+    assert entry.audit_entry_count == 0
+
+
+def test_list_audit_merges_alterations_and_downloads_chronologically(
+    tmp_db, tmp_uploads, tmp_path
+):
+    conn, _ = tmp_db
+    dataset, session = _ingest_sample_session(conn, tmp_uploads, tmp_path)
+
+    datasets_logic.export_dataset_csv(conn, dataset.id)
+
+    negatives = proposals_logic.list_all_proposals(
+        conn, session.id, CleaningPattern.NEGATIVES
+    )
+    accept_logic.accept_proposals(
+        conn,
+        session.id,
+        CleaningPattern.NEGATIVES,
+        [negatives[0].id],
+        session_updated_at=session.updated_at,
+    )
+
+    datasets_logic.export_dataset_csv(conn, dataset.id)
+
+    page = audit_logic.list_audit(conn, session.id, limit=10, offset=0)
+
+    assert page.total_count == 3
+    assert [e.kind for e in page.entries] == ["download", "alteration", "download"]
+    assert page.entries[2].audit_entry_count == 1  # type: ignore[union-attr]
+
+
+def test_list_audit_event_filter(tmp_db, tmp_uploads, tmp_path):
+    conn, _ = tmp_db
+    dataset, session = _ingest_sample_session(conn, tmp_uploads, tmp_path)
+
+    datasets_logic.export_dataset_csv(conn, dataset.id)
+    negatives = proposals_logic.list_all_proposals(
+        conn, session.id, CleaningPattern.NEGATIVES
+    )
+    accept_logic.accept_proposals(
+        conn,
+        session.id,
+        CleaningPattern.NEGATIVES,
+        [negatives[0].id],
+        session_updated_at=session.updated_at,
+    )
+
+    all_page = audit_logic.list_audit(
+        conn, session.id, limit=10, offset=0, event_filter="all"
+    )
+    alt_page = audit_logic.list_audit(
+        conn, session.id, limit=10, offset=0, event_filter="alteration"
+    )
+    dl_page = audit_logic.list_audit(
+        conn, session.id, limit=10, offset=0, event_filter="download"
+    )
+
+    assert all_page.total_count == 2
+    assert alt_page.total_count == 1
+    assert dl_page.total_count == 1
+    assert alt_page.entries[0].kind == "alteration"
+    assert dl_page.entries[0].kind == "download"

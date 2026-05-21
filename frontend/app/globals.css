@@ -515,13 +515,37 @@ table.grid-table.after-table thead th.col-dim {
   color: #fff;
 }
 
+body.audit-resize-active {
+  cursor: col-resize;
+  user-select: none;
+}
+
 .audit-sidebar {
-  width: 340px;
+  position: relative;
+  min-width: 280px;
+  max-width: 640px;
   border-left: 2px solid #333;
   background: #fafafa;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+}
+
+.audit-sidebar-resizer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  transform: translateX(-50%);
+  cursor: col-resize;
+  z-index: 2;
+  touch-action: none;
+}
+
+.audit-sidebar-resizer:hover,
+.audit-sidebar.is-resizing .audit-sidebar-resizer {
+  background: rgba(0, 0, 0, 0.08);
 }
 
 .audit-sidebar.is-hidden {
@@ -537,6 +561,77 @@ table.grid-table.after-table thead th.col-dim {
   font-weight: 700;
   font-size: 0.8rem;
   background: #eee;
+}
+
+.audit-legend {
+  margin: 0;
+  padding: 8px 12px;
+  border-bottom: 1px dashed #999;
+  font-size: 0.62rem;
+  line-height: 1.45;
+  color: #444;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #f5f5f5;
+}
+
+.audit-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.audit-legend-swatch {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  border: 1px solid #333;
+}
+
+.audit-legend-swatch--alteration {
+  background: #fff8e6;
+}
+
+.audit-legend-swatch--download {
+  background: #e6f0ff;
+}
+
+.audit-legend-utc {
+  color: #666;
+  font-style: italic;
+}
+
+.audit-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #ccc;
+  background: #fafafa;
+}
+
+.audit-filter-btn {
+  border: 1px solid #333;
+  background: #fff;
+  padding: 4px 8px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: #222;
+}
+
+.audit-filter-btn.is-active {
+  background: #333;
+  color: #fff;
+}
+
+.audit-sidebar-body tr.audit-row-alteration {
+  background: #fff8e6;
+}
+
+.audit-sidebar-body tr.audit-row-download {
+  background: #e6f0ff;
 }
 
 .audit-sidebar-body {

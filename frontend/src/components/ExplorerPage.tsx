@@ -22,6 +22,7 @@ type DatasetRow = DatasetSummary & { hasChanges?: boolean };
 export function ExplorerPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const listFetchIdRef = useRef(0);
   const [datasets, setDatasets] = useState<DatasetRow[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [listError, setListError] = useState<string | null>(null);
@@ -51,14 +52,17 @@ export function ExplorerPage() {
   }, []);
 
   const fetchDatasets = useCallback(async () => {
+    const fetchId = ++listFetchIdRef.current;
     setLoadState("loading");
     setListError(null);
     try {
       const rows = await listDatasets();
+      if (fetchId !== listFetchIdRef.current) return;
       setDatasets(rows);
       setLoadState("ready");
       void loadChangeStatus(rows);
     } catch (err) {
+      if (fetchId !== listFetchIdRef.current) return;
       setLoadState("error");
       setListError(
         err instanceof ApiError ? err.message : "Could not load datasets",
@@ -83,10 +87,12 @@ export function ExplorerPage() {
       return;
     }
 
+    listFetchIdRef.current += 1;
     setUploading(true);
     try {
       const created = await uploadDataset(file);
       setDatasets((prev) => [{ ...created, hasChanges: false }, ...prev]);
+      setLoadState("ready");
     } catch (err) {
       if (err instanceof ApiError) {
         setUploadError(err.message);

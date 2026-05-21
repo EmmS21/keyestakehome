@@ -5,11 +5,14 @@ Proposal is computed from cell_values + detection rules when the UI opens a step
 """
 
 from datetime import datetime
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 from schemas.types import CleaningPattern
+
+AuditEventFilter = Literal["all", "alteration", "download"]
 
 
 class CellChange(BaseModel):
@@ -67,9 +70,10 @@ class AcceptResponse(BaseModel):
     changes: list[AppliedCellChange]
 
 
-class AuditLogEntryView(BaseModel):
-    """Audit line for UI — maps from AuditLogEntry."""
+class AuditAlterationEntry(BaseModel):
+    """Accepted cell fix shown in the audit timeline."""
 
+    kind: Literal["alteration"] = "alteration"
     id: UUID
     submit_id: UUID
     pattern: CleaningPattern
@@ -80,10 +84,32 @@ class AuditLogEntryView(BaseModel):
     created_at: datetime
 
 
-class AuditLogResponse(BaseModel):
-    """GET .../audit — paginated change log."""
+class AuditDownloadEntry(BaseModel):
+    """CSV export event in the audit timeline."""
 
-    entries: list[AuditLogEntryView]
+    kind: Literal["download"] = "download"
+    id: UUID
+    created_at: datetime = Field(description="exported_at in UTC")
+    export_number: int = Field(ge=1)
+    audit_entry_count: int = Field(
+        ge=0,
+        description="Cell-level alterations recorded before this export",
+    )
+
+
+AuditTimelineEntry = Annotated[
+    AuditAlterationEntry | AuditDownloadEntry,
+    Field(discriminator="kind"),
+]
+
+# Back-compat alias for internal/tests referencing the old name
+AuditLogEntryView = AuditAlterationEntry
+
+
+class AuditLogResponse(BaseModel):
+    """GET .../audit — paginated timeline (alterations + downloads)."""
+
+    entries: list[AuditTimelineEntry]
     total_count: int = Field(ge=0)
 
 
