@@ -7,11 +7,17 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from backend.app import accept as accept_logic
+from backend.app import audit as audit_logic
 from backend.app import proposals as proposals_logic
 from backend.app.db.connection import connect
 from backend.app.dependencies import get_db_path
 from backend.app.exceptions import ProposalNotFoundError, SessionNotFoundError
-from schemas.api import AcceptRequest, AcceptResponse, ProposalsResponse
+from schemas.api import (
+    AcceptRequest,
+    AcceptResponse,
+    AuditLogResponse,
+    ProposalsResponse,
+)
 from schemas.types import CleaningPattern
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
@@ -76,3 +82,23 @@ def accept_proposals(
         conn.close()
 
     return AcceptResponse(submit_id=result.submit_id, changes=result.changes)
+
+
+@router.get("/{session_id}/audit", response_model=AuditLogResponse)
+def list_audit(
+    session_id: UUID,
+    limit: int = Query(10, ge=1),
+    offset: int = Query(0, ge=0),
+    db_path: Path = Depends(get_db_path),
+) -> AuditLogResponse:
+    conn = connect(db_path)
+    try:
+        page = audit_logic.list_audit(
+            conn, session_id, limit=limit, offset=offset
+        )
+    except SessionNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    finally:
+        conn.close()
+
+    return AuditLogResponse(entries=page.entries, total_count=page.total_count)

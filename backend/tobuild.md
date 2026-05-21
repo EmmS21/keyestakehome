@@ -17,7 +17,7 @@ Last updated after `POST /sessions/{id}/steps/{pattern}/accept`.
 - [x] `POST /datasets/{id}/sessions` — create or resume `cleaning_sessions`
 - [x] `GET /sessions/{id}/steps/{pattern}/proposals` — detectors + pagination + `total_count`
 - [x] `POST /sessions/{id}/steps/{pattern}/accept` — apply fixes + audit log
-- [ ] `GET /sessions/{id}/audit` — paginated change log
+- [x] `GET /sessions/{id}/audit` — paginated change log
 - [ ] `GET /datasets/{id}/export` — cleaned CSV download
 - [x] `GET /health` — liveness (no unit tests per guide)
 
@@ -28,7 +28,7 @@ Last updated after `POST /sessions/{id}/steps/{pattern}/accept`.
 - [x] `POST /datasets/{id}/sessions` — create then resume same id; unknown dataset raises
 - [x] `GET .../proposals` — negatives, refunds, double booking, pagination, pipeline data effect (4 tests)
 - [x] `POST .../accept` — selected updates, empty → `changes: []`, audit rows, bad proposal id
-- [ ] `GET .../audit`
+- [x] `GET .../audit`
 - [ ] `GET .../export`
 
 ### Backend infrastructure
@@ -40,7 +40,8 @@ Last updated after `POST /sessions/{id}/steps/{pattern}/accept`.
 - [x] Session start/resume (`app/sessions.py`)
 - [x] Proposals service (`app/proposals.py`)
 - [x] Accept service (`app/accept.py`)
-- [ ] Audit / export services
+- [x] Audit service (`app/audit.py`)
+- [ ] Export service
 - [x] Detectors (negatives, refunds, double booking)
 
 ### Docs / schema (no runtime yet)
