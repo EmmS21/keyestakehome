@@ -5,7 +5,7 @@ from pathlib import Path
 from fastapi import FastAPI
 
 from backend.app.db.connection import connect, init_db
-from backend.app.routers import datasets
+from backend.app.routers import datasets, sessions
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DB_PATH = REPO_ROOT / "backend" / "data" / "app.db"
@@ -17,6 +17,7 @@ app = FastAPI(
 )
 
 app.include_router(datasets.router)
+app.include_router(sessions.router)
 
 
 @app.on_event("startup")

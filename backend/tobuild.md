@@ -8,14 +8,14 @@ Run unit tests: `pytest backend/tests/unit -v`
 
 ## Build progress
 
-Last updated after `POST /datasets/{id}/sessions` (commit `5d797e0`).
+Last updated after `GET /sessions/{id}/steps/{pattern}/proposals`.
 
 ### API endpoints
 
 - [x] `POST /datasets` — CSV upload, parse, persist `datasets` / `dataset_rows` / `cell_values`, copy to `uploads/`
 - [x] `GET /datasets` — list datasets for explorer
 - [x] `POST /datasets/{id}/sessions` — create or resume `cleaning_sessions`
-- [ ] `GET /sessions/{id}/steps/{pattern}/proposals` — detectors + pagination + `total_count`
+- [x] `GET /sessions/{id}/steps/{pattern}/proposals` — detectors + pagination + `total_count`
 - [ ] `POST /sessions/{id}/steps/{pattern}/accept` — apply fixes + audit log
 - [ ] `GET /sessions/{id}/audit` — paginated change log
 - [ ] `GET /datasets/{id}/export` — cleaned CSV download
@@ -26,7 +26,7 @@ Last updated after `POST /datasets/{id}/sessions` (commit `5d797e0`).
 - [x] `POST /datasets` — valid grid stored; reject empty, header-only, no periods, bad numeric
 - [x] `GET /datasets` — empty list; after ingest returns summary with row_count
 - [x] `POST /datasets/{id}/sessions` — create then resume same id; unknown dataset raises
-- [ ] `GET .../proposals` — negatives, refunds, double booking, pagination, any pattern, pipeline data effect
+- [x] `GET .../proposals` — negatives, refunds, double booking, pagination, pipeline data effect (4 tests)
 - [ ] `POST .../accept` — selected updates, empty → `changes: []`, audit rows, bad proposal id
 - [ ] `GET .../audit`
 - [ ] `GET .../export`
@@ -38,8 +38,9 @@ Last updated after `POST /datasets/{id}/sessions` (commit `5d797e0`).
 - [ ] SQLite schema: `audit_log_entries`
 - [x] Dataset ingest + persistence (`app/datasets.py`)
 - [x] Session start/resume (`app/sessions.py`)
-- [ ] Proposals / accept / audit / export services
-- [ ] Detectors (negatives, refunds, double booking)
+- [x] Proposals service (`app/proposals.py`)
+- [ ] Accept / audit / export services
+- [x] Detectors (negatives, refunds, double booking)
 
 ### Docs / schema (no runtime yet)
 

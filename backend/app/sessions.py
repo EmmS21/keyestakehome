@@ -4,7 +4,7 @@ import sqlite3
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from backend.app.exceptions import DatasetNotFoundError
+from backend.app.exceptions import DatasetNotFoundError, SessionNotFoundError
 from schemas.database import CleaningSession
 
 
@@ -15,6 +15,20 @@ def _row_to_session(row: sqlite3.Row) -> CleaningSession:
         created_at=datetime.fromisoformat(row["created_at"]),
         updated_at=datetime.fromisoformat(row["updated_at"]),
     )
+
+
+def get_session(conn: sqlite3.Connection, session_id: UUID) -> CleaningSession:
+    row = conn.execute(
+        """
+        SELECT id, dataset_id, created_at, updated_at
+        FROM cleaning_sessions
+        WHERE id = ?
+        """,
+        (str(session_id),),
+    ).fetchone()
+    if row is None:
+        raise SessionNotFoundError(session_id)
+    return _row_to_session(row)
 
 
 def find_session_by_dataset(

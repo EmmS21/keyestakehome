@@ -25,6 +25,14 @@ class DatasetNotFoundError(Exception):
         super().__init__(f"Dataset not found: {dataset_id}")
 
 
+class SessionNotFoundError(Exception):
+    """No cleaning session exists for the given id."""
+
+    def __init__(self, session_id) -> None:
+        self.session_id = session_id
+        super().__init__(f"Session not found: {session_id}")
+
+
 class InvalidPeriodValueError(IngestError):
     """A period cell is not numeric."""
 
