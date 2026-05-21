@@ -14,4 +14,4 @@ Open in a browser (no build step):
 open docs/design/wireframes/cleaning-workspace.html
 ```
 
-Product context: [`README.md`](../../README.md). Scope boundaries: [`limitations.md`](../limitations.md).
+Product context: [`README.md`](../../README.md).

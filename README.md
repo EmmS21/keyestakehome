@@ -13,7 +13,7 @@ Take-home: upload deal revenue grids, review anomaly proposals (negatives → re
 5. **Resume** later — same session per dataset; audit and working copy persist on the server.
 6. **Export** downloads the current `cell_values` grid; each download is recorded in `export_events`.
 
-Deal grids are **large and wide** (many rows × many period columns). The full grid stays on the server; the browser gets paginated proposals and audit entries only. See [`docs/limitations.md`](docs/limitations.md) for intentional v1 boundaries.
+Deal grids are **large and wide** (many rows × many period columns). The full grid stays on the server; the browser gets paginated proposals and audit entries only.
 
 ### Anomaly patterns (from brief)
 
@@ -31,7 +31,7 @@ Sample data: [`data/sample.csv`](data/sample.csv).
 
 When an analyst downloads a cleaned CSV, the organization needs to answer:
 
-- **Who downloaded what?** — v1 stores *when* and *which version* of the grid was exported, not *who* (no auth yet). See [`docs/limitations.md`](docs/limitations.md).
+- **Who downloaded what?** — v1 stores *when* and *which version* of the grid was exported, not *who* (no auth yet).
 - **What version was that file?** — Each export is tied to the cleaning session and snapshots `session_updated_at` plus `audit_entry_count` (how many accepted cell changes were already on the record). Together with `audit_log_entries` (per-cell before/after on Submit), you can retrace what state the exported file reflected.
 
 Cell-level changes stay in the audit log; export timestamps live in `export_events` (separate from per-cell audit rows).
@@ -77,7 +77,6 @@ keyestakehome/
 │
 ├── docs/
 │   ├── database-schema.md   # ER diagram, storage layers, API DTOs
-│   ├── limitations.md       # v1 scope boundaries
 │   └── design/              # Wireframes (cleaning-workspace.html)
 │
 ├── schemas/                 # Pydantic: DB tables + API DTOs
@@ -93,7 +92,6 @@ keyestakehome/
 |-----|----------|
 | [`backend/README.md`](backend/README.md) | Endpoints, request/response notes, server product rules |
 | [`docs/database-schema.md`](docs/database-schema.md) | ER diagram, storage/flow views, field mapping |
-| [`docs/limitations.md`](docs/limitations.md) | Intentional v1 boundaries and assumptions |
 | [`docs/design/wireframes/cleaning-workspace.html`](docs/design/wireframes/cleaning-workspace.html) | Low-fidelity UI reference |
 
 ## Tech stack

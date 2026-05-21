@@ -85,7 +85,7 @@ FastAPI generates interactive docs from route handlers and Pydantic models in `s
 | Detectors | Run on current `cell_values`; order of user clicks is free, but fixes affect later counts |
 | Resume | Same `session_id` per dataset via `POST .../sessions` |
 
-Frontend owns tab selection, idle default UI, and submit UX. Wireframe: [`docs/design/wireframes/cleaning-workspace.html`](../docs/design/wireframes/cleaning-workspace.html). Product assumptions: [`docs/limitations.md`](../docs/limitations.md).
+Frontend owns tab selection, idle default UI, and submit UX. Wireframe: [`docs/design/wireframes/cleaning-workspace.html`](../docs/design/wireframes/cleaning-workspace.html).
 
 ## Persistence
 

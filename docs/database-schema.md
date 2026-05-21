@@ -1,6 +1,6 @@
 # Database schema
 
-Persisted tables and API DTOs. Product context: [`README.md`](../README.md), scale boundaries: [`limitations.md`](limitations.md). Code: [`schemas/database.py`](../schemas/database.py), [`schemas/api.py`](../schemas/api.py).
+Persisted tables and API DTOs. Product context: [`README.md`](../README.md). Code: [`schemas/database.py`](../schemas/database.py), [`schemas/api.py`](../schemas/api.py).
 
 ## Entity-relationship
 
