@@ -18,10 +18,10 @@ Upload: `POST http://127.0.0.1:8000/datasets` (multipart field `file`)
 | Path | Purpose |
 |------|---------|
 | `app/main.py` | FastAPI app, middleware, router registration |
-| `app/routers/` | HTTP routes (`datasets`, `sessions`, …) |
-| `app/services/` | Detectors, ingest, export, accept/submit logic |
-| `app/repositories/` | DB queries (datasets, cell_values, audit, …) |
-| `app/db/` | Engine, sessions, migrations |
+| `app/dependencies.py` | Shared `Depends()` helpers (paths, etc.) |
+| `app/routers/` | HTTP routes + response models |
+| `app/datasets.py` | Dataset ingest, parse, and DB access |
+| `app/db/` | SQLite connection and schema init |
 | `tests/unit/` | Detector and pure logic tests |
 | `tests/integration/` | Upload → pipeline → audit flows |
 

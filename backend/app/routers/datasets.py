@@ -1,10 +1,15 @@
 """Dataset upload and listing routes."""
 
+from datetime import datetime
 from pathlib import Path
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from pydantic import BaseModel, Field
 
+from backend.app import datasets as datasets_logic
 from backend.app.db.connection import connect
+from backend.app.dependencies import get_db_path, get_uploads_dir
 from backend.app.exceptions import (
     EmptyDatasetError,
     IngestError,
@@ -12,22 +17,45 @@ from backend.app.exceptions import (
     NoDataRowsError,
     NoPeriodColumnsError,
 )
-from backend.app.schemas.datasets import DatasetUploadResponse
-from backend.app.services import ingest as ingest_service
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-DEFAULT_DB_PATH = REPO_ROOT / "backend" / "data" / "app.db"
-DEFAULT_UPLOADS_DIR = REPO_ROOT / "uploads"
+
+class DatasetSummary(BaseModel):
+    id: UUID
+    name: str
+    period_columns: list[str]
+    row_count: int = Field(ge=0)
+    uploaded_at: datetime
 
 
-def get_db_path() -> Path:
-    return DEFAULT_DB_PATH
+class DatasetUploadResponse(DatasetSummary):
+    """POST /datasets — created dataset summary."""
 
 
-def get_uploads_dir() -> Path:
-    return DEFAULT_UPLOADS_DIR
+class DatasetListResponse(BaseModel):
+    datasets: list[DatasetSummary]
+
+
+@router.get("", response_model=DatasetListResponse)
+def list_datasets(db_path: Path = Depends(get_db_path)) -> DatasetListResponse:
+    conn = connect(db_path)
+    try:
+        summaries = datasets_logic.list_datasets(conn)
+    finally:
+        conn.close()
+    return DatasetListResponse(
+        datasets=[
+            DatasetSummary(
+                id=s.id,
+                name=s.name,
+                period_columns=s.period_columns,
+                row_count=s.row_count,
+                uploaded_at=s.uploaded_at,
+            )
+            for s in summaries
+        ]
+    )
 
 
 @router.post("", response_model=DatasetUploadResponse, status_code=201)
@@ -52,13 +80,13 @@ async def upload_dataset(
             from backend.app.db.connection import init_db
 
             init_db(conn)
-            dataset = ingest_service.ingest_dataset(
+            dataset = datasets_logic.ingest_dataset(
                 conn,
                 uploads_dir=uploads_dir,
                 source_path=staging_path,
                 name=file.filename,
             )
-            count = ingest_service.row_count(conn, dataset.id)
+            count = datasets_logic.row_count(conn, dataset.id)
         finally:
             conn.close()
     except EmptyDatasetError as exc:

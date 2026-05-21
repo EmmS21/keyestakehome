@@ -2,14 +2,13 @@
 
 import pytest
 
+from backend.app import datasets as datasets_logic
 from backend.app.exceptions import (
     EmptyDatasetError,
     InvalidPeriodValueError,
     NoDataRowsError,
     NoPeriodColumnsError,
 )
-from backend.app.repositories import datasets as datasets_repo
-from backend.app.services import ingest as ingest_service
 
 VALID_CSV = """\
 A,B,C,202401,202402,202403,202404,202405
@@ -30,7 +29,7 @@ def _write_csv(tmp_path, filename: str, content: str):
 def test_ingest_valid_sample_csv_stores_grid(tmp_db, tmp_uploads, tmp_path):
     conn, _ = tmp_db
     csv_file = _write_csv(tmp_path, "sample.csv", VALID_CSV)
-    dataset = ingest_service.ingest_dataset(
+    dataset = datasets_logic.ingest_dataset(
         conn,
         uploads_dir=tmp_uploads,
         source_path=csv_file,
@@ -47,7 +46,7 @@ def test_ingest_valid_sample_csv_stores_grid(tmp_db, tmp_uploads, tmp_path):
     ]
     assert (tmp_uploads / f"{dataset.id}_sample.csv").exists()
 
-    rows = datasets_repo.list_rows(conn, dataset.id)
+    rows = datasets_logic.list_rows(conn, dataset.id)
     assert len(rows) == 5
 
     first = rows[0]
@@ -61,7 +60,7 @@ def test_ingest_valid_sample_csv_stores_grid(tmp_db, tmp_uploads, tmp_path):
     assert blank_dims.dimension_b is None
     assert blank_dims.dimension_c is None
 
-    cells = datasets_repo.list_cell_values(conn, first.id)
+    cells = datasets_logic.list_cell_values(conn, first.id)
     by_period = {c.period: c.value for c in cells}
     assert by_period["202402"] == -200.0
     assert len(cells) == 5
@@ -70,19 +69,19 @@ def test_ingest_valid_sample_csv_stores_grid(tmp_db, tmp_uploads, tmp_path):
 def test_ingest_rejects_empty_file(tmp_path):
     empty = _write_csv(tmp_path, "empty.csv", "")
     with pytest.raises(EmptyDatasetError):
-        ingest_service.parse_csv(empty)
+        datasets_logic.parse_csv(empty)
 
 
 def test_ingest_rejects_header_only(tmp_path):
     header_only = _write_csv(tmp_path, "header.csv", "A,B,C,202401,202402\n")
     with pytest.raises(NoDataRowsError):
-        ingest_service.parse_csv(header_only)
+        datasets_logic.parse_csv(header_only)
 
 
 def test_ingest_rejects_no_period_columns(tmp_path):
     no_periods = _write_csv(tmp_path, "dims.csv", "A,B,C\nDog,China,Line\n")
     with pytest.raises(NoPeriodColumnsError):
-        ingest_service.parse_csv(no_periods)
+        datasets_logic.parse_csv(no_periods)
 
 
 def test_ingest_rejects_non_numeric_period_value(tmp_path):
@@ -92,6 +91,6 @@ def test_ingest_rejects_non_numeric_period_value(tmp_path):
         "A,B,C,202401,202402\nDog,China,Line,100,abc\n",
     )
     with pytest.raises(InvalidPeriodValueError) as exc_info:
-        ingest_service.parse_csv(bad)
+        datasets_logic.parse_csv(bad)
     assert exc_info.value.row_index == 0
     assert exc_info.value.period == "202402"

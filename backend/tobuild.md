@@ -6,6 +6,60 @@ Run unit tests: `pytest backend/tests/unit -v`
 
 ---
 
+## Build progress
+
+Last updated after `POST /datasets` (commit `e77befb`).
+
+### API endpoints
+
+- [x] `POST /datasets` — CSV upload, parse, persist `datasets` / `dataset_rows` / `cell_values`, copy to `uploads/`
+- [x] `GET /datasets` — list datasets for explorer
+- [ ] `POST /datasets/{id}/sessions` — create or resume `cleaning_sessions`
+- [ ] `GET /sessions/{id}/steps/{pattern}/proposals` — detectors + pagination + `total_count`
+- [ ] `POST /sessions/{id}/steps/{pattern}/accept` — apply fixes + audit log
+- [ ] `GET /sessions/{id}/audit` — paginated change log
+- [ ] `GET /datasets/{id}/export` — cleaned CSV download
+- [x] `GET /health` — liveness (no unit tests per guide)
+
+### Unit tests (service layer, no HTTP)
+
+- [x] `POST /datasets` — valid grid stored; reject empty, header-only, no periods, bad numeric
+- [x] `GET /datasets` — empty list; after ingest returns summary with row_count
+- [ ] `POST /datasets/{id}/sessions`
+- [ ] `GET .../proposals` — negatives, refunds, double booking, pagination, any pattern, pipeline data effect
+- [ ] `POST .../accept` — selected updates, empty → `changes: []`, audit rows, bad proposal id
+- [ ] `GET .../audit`
+- [ ] `GET .../export`
+
+### Backend infrastructure
+
+- [x] SQLite schema: `datasets`, `dataset_rows`, `cell_values`
+- [ ] SQLite schema: `cleaning_sessions`, `audit_log_entries`
+- [x] Dataset ingest + persistence (`app/datasets.py`)
+- [ ] Session / proposals / accept / audit / export services
+- [ ] Detectors (negatives, refunds, double booking)
+
+### Docs / schema (no runtime yet)
+
+- [x] `cleaning_sessions` simplified in docs + `schemas/database.py` (no `current_step`)
+- [x] Manual navigation product rules documented
+- [ ] Accept flow implemented (no step update on submit)
+
+### Frontend
+
+- [ ] File upload + explorer
+- [ ] `activePattern`, `patternCounts`, selection state
+- [ ] Workspace open (session + prefetch counts, no tab selected)
+- [ ] Tab click → proposals → Before/After
+- [ ] Submit (empty + partial) + tab styling from `total_count`
+- [ ] Resume later flow
+
+### Optional (v1)
+
+- [ ] `GET /sessions/{id}/pattern-counts` (frontend can use proposals `total_count` instead)
+
+---
+
 ## Product rules (locked)
 
 | Rule | Who enforces |

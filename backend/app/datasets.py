@@ -1,4 +1,4 @@
-"""CSV parse and dataset ingest."""
+"""Dataset ingest, parsing, and SQLite persistence."""
 
 import csv
 import json
@@ -16,10 +16,18 @@ from backend.app.exceptions import (
     NoDataRowsError,
     NoPeriodColumnsError,
 )
-from backend.app.repositories import datasets as datasets_repo
-from schemas.database import Dataset
+from schemas.database import CellValue, Dataset, DatasetRow
 
 PERIOD_HEADER = re.compile(r"^\d{6}$")
+
+
+@dataclass(frozen=True)
+class DatasetSummaryRecord:
+    id: UUID
+    name: str
+    uploaded_at: datetime
+    period_columns: list[str]
+    row_count: int
 
 
 @dataclass(frozen=True)
@@ -132,7 +140,7 @@ def ingest_dataset(
     dest_path = uploads_dir / f"{dataset_id}_{name}"
     shutil.copy2(source_path, dest_path)
 
-    datasets_repo.insert_dataset(
+    insert_dataset(
         conn,
         dataset_id=dataset_id,
         name=name,
@@ -143,7 +151,7 @@ def ingest_dataset(
 
     for row in parsed.rows:
         row_id = uuid4()
-        datasets_repo.insert_dataset_row(
+        insert_dataset_row(
             conn,
             row_id=row_id,
             dataset_id=dataset_id,
@@ -153,7 +161,7 @@ def ingest_dataset(
             dimension_c=row.dimension_c,
         )
         for period, value in row.periods.items():
-            datasets_repo.insert_cell_value(
+            insert_cell_value(
                 conn,
                 dataset_row_id=row_id,
                 period=period,
@@ -161,8 +169,165 @@ def ingest_dataset(
             )
 
     conn.commit()
-    return datasets_repo.get_dataset(conn, dataset_id)
+    return get_dataset(conn, dataset_id)
 
 
 def row_count(conn: sqlite3.Connection, dataset_id: UUID) -> int:
-    return datasets_repo.count_rows(conn, dataset_id)
+    result = conn.execute(
+        "SELECT COUNT(*) AS c FROM dataset_rows WHERE dataset_id = ?",
+        (str(dataset_id),),
+    ).fetchone()
+    return int(result["c"])
+
+
+def list_datasets(conn: sqlite3.Connection) -> list[DatasetSummaryRecord]:
+    rows = conn.execute(
+        """
+        SELECT
+            d.id,
+            d.name,
+            d.uploaded_at,
+            d.period_columns,
+            COUNT(dr.id) AS row_count
+        FROM datasets d
+        LEFT JOIN dataset_rows dr ON dr.dataset_id = d.id
+        GROUP BY d.id
+        ORDER BY d.uploaded_at DESC
+        """
+    ).fetchall()
+    return [
+        DatasetSummaryRecord(
+            id=UUID(r["id"]),
+            name=r["name"],
+            uploaded_at=datetime.fromisoformat(r["uploaded_at"]),
+            period_columns=json.loads(r["period_columns"]),
+            row_count=int(r["row_count"]),
+        )
+        for r in rows
+    ]
+
+
+def insert_dataset(
+    conn: sqlite3.Connection,
+    *,
+    dataset_id: UUID,
+    name: str,
+    uploaded_at: datetime,
+    original_path: str,
+    period_columns: list[str],
+) -> None:
+    conn.execute(
+        """
+        INSERT INTO datasets (id, name, uploaded_at, original_path, period_columns)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (
+            str(dataset_id),
+            name,
+            uploaded_at.isoformat(),
+            original_path,
+            json.dumps(period_columns),
+        ),
+    )
+
+
+def insert_dataset_row(
+    conn: sqlite3.Connection,
+    *,
+    row_id: UUID,
+    dataset_id: UUID,
+    row_index: int,
+    dimension_a: str | None,
+    dimension_b: str | None,
+    dimension_c: str | None,
+) -> None:
+    conn.execute(
+        """
+        INSERT INTO dataset_rows
+            (id, dataset_id, row_index, dimension_a, dimension_b, dimension_c)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (
+            str(row_id),
+            str(dataset_id),
+            row_index,
+            dimension_a,
+            dimension_b,
+            dimension_c,
+        ),
+    )
+
+
+def insert_cell_value(
+    conn: sqlite3.Connection,
+    *,
+    dataset_row_id: UUID,
+    period: str,
+    value: float,
+) -> None:
+    conn.execute(
+        """
+        INSERT INTO cell_values (dataset_row_id, period, value)
+        VALUES (?, ?, ?)
+        """,
+        (str(dataset_row_id), period, value),
+    )
+
+
+def get_dataset(conn: sqlite3.Connection, dataset_id: UUID) -> Dataset:
+    row = conn.execute(
+        "SELECT id, name, uploaded_at, original_path, period_columns FROM datasets WHERE id = ?",
+        (str(dataset_id),),
+    ).fetchone()
+    if row is None:
+        raise KeyError(dataset_id)
+    return Dataset(
+        id=UUID(row["id"]),
+        name=row["name"],
+        uploaded_at=datetime.fromisoformat(row["uploaded_at"]),
+        original_path=row["original_path"],
+        period_columns=json.loads(row["period_columns"]),
+    )
+
+
+def list_rows(conn: sqlite3.Connection, dataset_id: UUID) -> list[DatasetRow]:
+    rows = conn.execute(
+        """
+        SELECT id, dataset_id, row_index, dimension_a, dimension_b, dimension_c
+        FROM dataset_rows
+        WHERE dataset_id = ?
+        ORDER BY row_index
+        """,
+        (str(dataset_id),),
+    ).fetchall()
+    return [
+        DatasetRow(
+            id=UUID(r["id"]),
+            dataset_id=UUID(r["dataset_id"]),
+            row_index=r["row_index"],
+            dimension_a=r["dimension_a"],
+            dimension_b=r["dimension_b"],
+            dimension_c=r["dimension_c"],
+        )
+        for r in rows
+    ]
+
+
+def list_cell_values(conn: sqlite3.Connection, dataset_row_id: UUID) -> list[CellValue]:
+    rows = conn.execute(
+        """
+        SELECT dataset_row_id, period, value
+        FROM cell_values
+        WHERE dataset_row_id = ?
+        ORDER BY period
+        """,
+        (str(dataset_row_id),),
+    ).fetchall()
+    return [
+        CellValue(
+            dataset_row_id=UUID(r["dataset_row_id"]),
+            period=r["period"],
+            value=r["value"],
+        )
+        for r in rows
+    ]
