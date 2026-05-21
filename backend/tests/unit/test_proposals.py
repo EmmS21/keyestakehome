@@ -57,7 +57,7 @@ def test_list_proposals_detects_negatives_refunds_and_double_booking_on_sample_c
     refunds = proposals_logic.list_proposals(
         conn, session.id, CleaningPattern.REFUNDS, limit=50, offset=0
     )
-    assert refunds.total_count == 2
+    assert refunds.total_count == 5
     cat = next(p for p in refunds.proposals if p.dimension_a == "Cat")
     assert {c.period for c in cat.changes} == {"202401", "202402", "202403"}
     assert all(c.value_after == 0.0 for c in cat.changes)
@@ -65,12 +65,16 @@ def test_list_proposals_detects_negatives_refunds_and_double_booking_on_sample_c
     double = proposals_logic.list_proposals(
         conn, session.id, CleaningPattern.DOUBLE_BOOKING, limit=50, offset=0
     )
-    assert double.total_count == 1
-    blank = double.proposals[0]
-    assert blank.dimension_a is None
+    assert double.total_count == 2
+    blank = next(p for p in double.proposals if p.dimension_a is None)
     by_period = {c.period: (c.value_before, c.value_after) for c in blank.changes}
     assert by_period["202401"] == (100.0, 50.0)
     assert by_period["202402"] == (0.0, 50.0)
+    dog_china_dbl = next(
+        p for p in double.proposals if p.dimension_a == "Dog" and p.dimension_b == "China"
+    )
+    assert {c.period for c in dog_china_dbl.changes} == {"202402", "202403"}
+    assert dog_china_dbl.changes[0].value_after == -100.0
 
 
 def test_list_proposals_pagination_returns_pages_with_stable_total_count(
@@ -109,7 +113,7 @@ def test_list_proposals_refund_count_drops_after_working_copy_is_updated(
     before = proposals_logic.list_proposals(
         conn, session.id, CleaningPattern.REFUNDS, limit=50, offset=0
     )
-    assert before.total_count == 2
+    assert before.total_count == 5
 
     bird = next(
         r
@@ -125,11 +129,14 @@ def test_list_proposals_refund_count_drops_after_working_copy_is_updated(
     )
     conn.commit()
 
+    bird_before = next(p for p in before.proposals if p.dimension_a == "Bird")
+    assert "202402" in {c.period for c in bird_before.changes}
+
     after = proposals_logic.list_proposals(
         conn, session.id, CleaningPattern.REFUNDS, limit=50, offset=0
     )
-    assert after.total_count == 1
-    assert all(p.dataset_row_id != bird.id for p in after.proposals)
+    bird_after = next(p for p in after.proposals if p.dimension_a == "Bird")
+    assert "202402" not in {c.period for c in bird_after.changes}
 
 
 def test_list_proposals_missing_session_raises(tmp_db):

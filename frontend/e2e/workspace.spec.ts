@@ -28,7 +28,7 @@ test.describe("Cleaning Workspace", () => {
     await expect(page.getByTestId("pattern-badge-negatives")).toHaveText("4");
     await expect(page.getByTestId("pattern-badge-refunds")).toHaveText("2");
     await expect(page.getByTestId("pattern-badge-double_booking")).toHaveText(
-      "1",
+      "2",
     );
   });
 

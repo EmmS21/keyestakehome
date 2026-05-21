@@ -31,7 +31,7 @@ def detect_refunds(period_columns: list[str], periods: dict[str, float]) -> list
         running_sum = 0.0
         for end in range(start, n):
             running_sum += periods[period_columns[end]]
-            if end > start and abs(running_sum) < _SUM_EPSILON:
+            if abs(running_sum) < _SUM_EPSILON:
                 for idx in range(start, end + 1):
                     flagged.add(period_columns[idx])
 
@@ -54,8 +54,6 @@ def detect_double_booking(
         right = period_columns[idx + 1]
         m_i = periods[left]
         m_next = periods[right]
-        if m_i <= 0:
-            continue
         average = (m_i + m_next) / 2
         if abs(average - m_i / 2) >= _SUM_EPSILON:
             continue

@@ -14,10 +14,14 @@ import {
   ApiError,
   acceptProposals,
   fetchAudit,
-  fetchProposals,
   findDataset,
   startSession,
 } from "@/lib/api";
+import {
+  countActionableProposals,
+  actionableChanges,
+  fetchActionableProposalsPage,
+} from "@/lib/proposals";
 import {
   clearSelection,
   readSelection,
@@ -119,6 +123,7 @@ export function CleaningWorkspacePage({ datasetId }: Props) {
   const beforeScrollRef = useRef<HTMLDivElement>(null);
   const afterScrollRef = useRef<HTMLDivElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const proposalsServerOffsetRef = useRef(0);
   const syncingScroll = useRef(false);
   const toastTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const auditResizeRef = useRef<{ startX: number; startWidth: number } | null>(
@@ -150,8 +155,8 @@ export function CleaningWorkspacePage({ datasetId }: Props) {
   const refetchCounts = useCallback(async (sid: string) => {
     const counts = await Promise.all(
       PATTERNS.map(async (pattern) => {
-        const page = await fetchProposals(sid, pattern, 1, 0);
-        return { pattern, count: page.total_count };
+        const count = await countActionableProposals(sid, pattern);
+        return { pattern, count };
       }),
     );
     setPatternCounts((prev) => {
@@ -204,29 +209,38 @@ export function CleaningWorkspacePage({ datasetId }: Props) {
   const loadProposals = useCallback(
     async (pattern: CleaningPattern, append: boolean) => {
       if (!sessionId) return;
-      const offset = append ? proposals.length : 0;
       if (append) setLoadingMore(true);
       else setProposalsLoading(true);
 
       try {
-        const page = await fetchProposals(
-          sessionId,
-          pattern,
-          PROPOSALS_PAGE,
-          offset,
-        );
-        setSessionUpdatedAt(page.session_updated_at);
-        setProposalsTotal(page.total_count);
-        setProposals((prev) =>
-          append ? [...prev, ...page.proposals] : page.proposals,
-        );
-
         if (!append) {
+          const [actionableTotal, page] = await Promise.all([
+            countActionableProposals(sessionId, pattern),
+            fetchActionableProposalsPage(
+              sessionId,
+              pattern,
+              PROPOSALS_PAGE,
+              0,
+            ),
+          ]);
+          setProposalsTotal(actionableTotal);
+          setSessionUpdatedAt(page.session_updated_at);
+          setProposals(page.proposals);
+          proposalsServerOffsetRef.current = page.nextServerOffset;
+
           const stored = readSelection(datasetId, pattern);
           const valid = new Set(page.proposals.map((p) => p.id));
-          setSelectedIds(
-            new Set(stored.filter((id) => valid.has(id))),
+          setSelectedIds(new Set(stored.filter((id) => valid.has(id))));
+        } else {
+          const page = await fetchActionableProposalsPage(
+            sessionId,
+            pattern,
+            PROPOSALS_PAGE,
+            proposalsServerOffsetRef.current,
           );
+          setSessionUpdatedAt(page.session_updated_at);
+          setProposals((prev) => [...prev, ...page.proposals]);
+          proposalsServerOffsetRef.current = page.nextServerOffset;
         }
       } catch (err) {
         showToast(
@@ -237,7 +251,7 @@ export function CleaningWorkspacePage({ datasetId }: Props) {
         setLoadingMore(false);
       }
     },
-    [sessionId, proposals.length, datasetId, showToast],
+    [sessionId, datasetId, showToast],
   );
 
   const openPattern = useCallback(
@@ -666,7 +680,10 @@ export function CleaningWorkspacePage({ datasetId }: Props) {
                             <tbody>
                               {proposals.map((p) => {
                                 const changeMap = Object.fromEntries(
-                                  p.changes.map((c) => [c.period, c]),
+                                  actionableChanges(p.changes).map((c) => [
+                                    c.period,
+                                    c,
+                                  ]),
                                 );
                                 const checked = selectedIds.has(p.id);
                                 return (
@@ -750,7 +767,10 @@ export function CleaningWorkspacePage({ datasetId }: Props) {
                             <tbody>
                               {proposals.map((p) => {
                                 const changeMap = Object.fromEntries(
-                                  p.changes.map((c) => [c.period, c]),
+                                  actionableChanges(p.changes).map((c) => [
+                                    c.period,
+                                    c,
+                                  ]),
                                 );
                                 const checked = selectedIds.has(p.id);
                                 return (
