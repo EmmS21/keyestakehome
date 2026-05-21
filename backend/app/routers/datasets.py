@@ -40,7 +40,12 @@ class DatasetListResponse(BaseModel):
     datasets: list[DatasetSummary]
 
 
-@router.get("", response_model=DatasetListResponse)
+@router.get(
+    "",
+    response_model=DatasetListResponse,
+    summary="List datasets",
+    description="Returns all uploaded datasets for the file explorer.",
+)
 def list_datasets(db_path: Path = Depends(get_db_path)) -> DatasetListResponse:
     conn = connect(db_path)
     try:
@@ -123,7 +128,20 @@ async def upload_dataset(
     )
 
 
-@router.post("/{dataset_id}/sessions", response_model=SessionCreateResponse)
+@router.post(
+    "/{dataset_id}/sessions",
+    response_model=SessionCreateResponse,
+    summary="Start or resume cleaning session",
+    description=(
+        "One cleaning session per dataset. Returns existing session (200) or creates a new one (201). "
+        "Use session_id for proposals, accept, and audit routes."
+    ),
+    responses={
+        201: {"description": "New session created"},
+        200: {"description": "Existing session resumed"},
+        404: {"description": "Dataset not found"},
+    },
+)
 def create_or_resume_session(
     dataset_id: UUID,
     response: Response,

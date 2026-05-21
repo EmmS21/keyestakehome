@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Data Cleaning Tool — Low-fidelity Wireframes</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #e8e8e8;
+      color: #222;
+      padding: 24px;
+      line-height: 1.4;
+    }
+    h1 { font-size: 1.25rem; margin-bottom: 8px; }
+    .intro { max-width: 900px; margin-bottom: 32px; font-size: 0.875rem; color: #444; }
+    .artboard {
+      width: 1280px;
+      max-width: 100%;
+      background: #fff;
+      border: 2px solid #333;
+      margin-bottom: 48px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.12);
+    }
+    .meta {
+      background: #333;
+      color: #fff;
+      padding: 10px 16px;
+      font-size: 0.75rem;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .meta strong { color: #ccc; }
+    .callouts {
+      background: #f5f5f5;
+      border-top: 1px dashed #999;
+      padding: 12px 16px;
+      font-size: 0.7rem;
+      color: #555;
+    }
+    .callouts ol { margin-left: 18px; }
+    /* App chrome */
+    .app-header {
+      border-bottom: 2px solid #333;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #fafafa;
+    }
+    .app-title { font-weight: 700; font-size: 1rem; }
+    .btn {
+      border: 2px solid #333;
+      background: #fff;
+      padding: 6px 14px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: default;
+    }
+    .btn-primary { background: #333; color: #fff; }
+    .btn-sm { padding: 4px 10px; font-size: 0.65rem; }
+    .link { text-decoration: underline; font-size: 0.8rem; }
+    /* Explorer */
+    .upload-zone {
+      margin: 20px;
+      border: 2px dashed #666;
+      padding: 40px;
+      text-align: center;
+      background: #f9f9f9;
+      color: #666;
+      font-size: 0.85rem;
+    }
+    .upload-zone.loading { border-style: solid; background: #eee; }
+    .banner {
+      margin: 0 20px 12px;
+      padding: 10px 14px;
+      border: 2px solid #333;
+      font-size: 0.8rem;
+    }
+    .banner.error { background: #f0f0f0; border-color: #900; }
+    .banner.success { background: #f0f0f0; border-style: dashed; }
+    table.data {
+      width: calc(100% - 40px);
+      margin: 0 20px 20px;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+    table.data th, table.data td {
+      border: 1px solid #333;
+      padding: 10px 12px;
+      text-align: left;
+    }
+    table.data th { background: #ddd; font-weight: 700; }
+    /* Workspace layout */
+    .workspace { display: flex; min-height: 560px; }
+    .sidebar {
+      width: 200px;
+      border-right: 2px solid #333;
+      background: #e8e8e8;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 560px;
+    }
+    .anomaly-tab {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 20px 12px;
+      border: none;
+      border-bottom: 2px solid #333;
+      background: #ddd;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-align: center;
+      line-height: 1.3;
+      cursor: default;
+      width: 100%;
+    }
+    .anomaly-tab:last-child { border-bottom: none; }
+    .anomaly-tab.muted { color: #666; background: #e0e0e0; }
+    .anomaly-tab.active {
+      background: #fff;
+      box-shadow: inset 5px 0 0 #333;
+    }
+    .anomaly-tab.idle-hint { background: #e8e8e8; }
+    .badge {
+      background: #333;
+      color: #fff;
+      font-size: 0.7rem;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-weight: 700;
+      min-width: 28px;
+    }
+    .badge.muted { background: #999; }
+    .main {
+      flex: 1;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .main.idle {
+      align-items: center;
+      justify-content: center;
+      color: #666;
+      font-size: 1rem;
+      position: relative;
+    }
+    .main.idle.has-toast .idle-prompt { display: none; }
+    .toast-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 5;
+      background: rgba(255, 255, 255, 0.6);
+    }
+    .toast-card {
+      background: #fff;
+      border: 2px solid #333;
+      padding: 28px 56px 22px;
+      text-align: center;
+      min-width: 340px;
+      max-width: 420px;
+      position: relative;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    }
+    .toast-close {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      width: 28px;
+      height: 28px;
+      border: 2px solid #333;
+      background: #fff;
+      font-size: 1.1rem;
+      line-height: 1;
+      font-weight: 700;
+      cursor: default;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .toast-message {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #222;
+      margin-bottom: 10px;
+      padding: 0 24px;
+    }
+    .toast-timer {
+      font-size: 0.8rem;
+      color: #555;
+    }
+    .toast-timer strong { color: #222; }
+    .main-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .main-header h2 { font-size: 1rem; font-weight: 700; }
+    .main-header .sub { font-size: 0.75rem; color: #555; }
+    .toolbar { display: flex; gap: 8px; align-items: center; font-size: 0.75rem; }
+    .compare-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      border: 2px solid #333;
+      background: #fff;
+    }
+    .compare-panels-row {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+    }
+    .compare-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .compare-panel + .compare-panel {
+      border-left: 2px solid #333;
+    }
+    .panel-title {
+      padding: 8px 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-align: center;
+      letter-spacing: 0.08em;
+      flex-shrink: 0;
+    }
+    .compare-panel.before .panel-title {
+      background: #222;
+      color: #fff;
+    }
+    .compare-panel.after .panel-title {
+      background: #666;
+      color: #fff;
+    }
+    .grid-wrap {
+      flex: 1;
+      overflow: auto;
+      background: #fff;
+    }
+    table.grid-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.7rem;
+    }
+    table.grid-table thead th {
+      position: sticky;
+      top: 0;
+      background: #333;
+      color: #fff;
+      padding: 8px 10px;
+      border: 1px solid #222;
+      text-align: center;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    table.grid-table thead th.col-dim { background: #444; text-align: left; }
+    table.grid-table thead th.col-check {
+      width: 36px;
+      background: #555;
+    }
+    table.grid-table tbody td {
+      border: 1px solid #bbb;
+      padding: 8px 10px;
+      text-align: right;
+      vertical-align: middle;
+    }
+    table.grid-table tbody td.col-dim {
+      text-align: left;
+      background: #f5f5f5;
+      font-weight: 600;
+    }
+    table.grid-table tbody td.col-check {
+      text-align: center;
+      background: #eee;
+    }
+    table.grid-table tbody tr.proposal-row { background: #fff; }
+    table.grid-table tbody tr.proposal-row:hover { background: #fafafa; }
+    table.grid-table tbody tr.proposal-row.row-checked { background: #f0f0f0; }
+    table.grid-table td.cell-anomaly {
+      background: #222;
+      color: #fff;
+      font-weight: 700;
+      text-align: center;
+    }
+    table.grid-table td.cell-fix {
+      background: #888;
+      color: #fff;
+      font-weight: 700;
+      text-align: center;
+      outline: 2px solid #333;
+      outline-offset: -2px;
+    }
+    table.grid-table td.cell-normal { color: #444; }
+    table.grid-table.after-table thead th { background: #555; }
+    table.grid-table.after-table thead th.col-dim { background: #666; }
+    .submit-row {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #ccc;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .legend { font-size: 0.65rem; color: #666; }
+    .empty-state { text-align: center; color: #666; padding: 60px 20px; font-size: 0.95rem; flex: 1; display: flex; align-items: center; justify-content: center; }
+    .skeleton-table {
+      flex: 1;
+      border: 2px solid #333;
+      background: repeating-linear-gradient(0deg, #eee, #eee 32px, #e4e4e4 32px, #e4e4e4 64px);
+    }
+    /* Audit log — collapsible right sidebar */
+    .audit-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 2px solid #333;
+      padding: 6px 14px 6px 10px;
+      background: #fff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: default;
+      color: #222;
+    }
+    .audit-toggle[aria-pressed="true"] {
+      background: #333;
+      color: #fff;
+    }
+    .audit-toggle-icon {
+      flex-shrink: 0;
+      display: block;
+    }
+    .audit-toggle-label { white-space: nowrap; }
+    .audit-sidebar {
+      width: 340px;
+      border-left: 2px solid #333;
+      background: #fafafa;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .audit-sidebar.is-hidden { display: none; }
+    .audit-sidebar-header {
+      padding: 12px 14px;
+      border-bottom: 2px solid #333;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 700;
+      font-size: 0.8rem;
+      background: #eee;
+    }
+    .audit-sidebar-body {
+      flex: 1;
+      overflow-y: auto;
+      font-size: 0.65rem;
+      min-height: 0;
+      max-height: 480px;
+    }
+    .audit-sidebar-body table {
+      width: calc(100% - 20px);
+      margin: 10px;
+      border-collapse: collapse;
+    }
+    .audit-sidebar-body th, .audit-sidebar-body td {
+      border: 1px solid #666;
+      padding: 5px 6px;
+      text-align: left;
+    }
+    .audit-sidebar-body th { background: #ddd; font-size: 0.6rem; }
+    .audit-sidebar-empty {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #888;
+      font-size: 0.85rem;
+      padding: 40px 16px;
+      text-align: center;
+    }
+    .audit-sidebar-footer {
+      padding: 8px 12px;
+      border-top: 1px dashed #999;
+      font-size: 0.65rem;
+      text-align: center;
+      color: #666;
+      background: #f5f5f5;
+      flex-shrink: 0;
+    }
+    .audit-loading-row td {
+      text-align: center;
+      color: #888;
+      font-style: italic;
+      padding: 12px;
+      background: #f0f0f0;
+    }
+    .list-end-marker {
+      padding: 12px 16px;
+      text-align: center;
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: #555;
+      background: #eee;
+      border-top: 2px solid #333;
+      flex-shrink: 0;
+    }
+    @media print {
+      body { background: #fff; }
+      .artboard { page-break-after: always; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Data Cleaning Tool — Low-fidelity Wireframes</h1>
+  <p class="intro">
+    Desktop 1280px · Grayscale · PE diligence analyst<br>
+    Explorer · cleaning workspace (Before/After) · audit sidebar · submit toast<br>
+    Path: <code>docs/design/wireframes/cleaning-workspace.html</code> · Start with artboards <strong>4</strong> and <strong>5</strong>.
+  </p>
+
+  <!-- 1. Explorer empty -->
+  <section class="artboard" id="1">
+    <div class="meta">
+      <span><strong>1.</strong> File Explorer — Empty</span>
+      <span>Route: <code>/</code></span>
+    </div>
+    <header class="app-header">
+      <span class="app-title">Data Cleaning Tool</span>
+    </header>
+    <div class="upload-zone">
+      [ Upload CSV ] or drag file here<br>
+      <span style="font-size:0.75rem;margin-top:8px;display:block">.csv only</span>
+    </div>
+    <p style="margin:20px;text-align:center;color:#888;font-size:0.85rem">No datasets yet. Upload a deal file to begin.</p>
+    <div class="callouts">
+      <ol>
+        <li>Primary entry — upload is the main CTA when empty.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 2. Explorer loaded -->
+  <section class="artboard" id="2">
+    <div class="meta">
+      <span><strong>2.</strong> File Explorer — Loaded</span>
+      <span>Route: <code>/</code></span>
+    </div>
+    <header class="app-header">
+      <span class="app-title">Data Cleaning Tool</span>
+      <button class="btn btn-sm">Upload CSV</button>
+    </header>
+    <div class="upload-zone" style="padding:20px;margin-bottom:12px">Drop file or click to upload</div>
+    <table class="data">
+      <thead>
+        <tr><th>Name</th><th>Rows</th><th>Uploaded</th><th></th></tr>
+      </thead>
+      <tbody>
+        <tr><td>sample.csv</td><td>5</td><td>May 20, 2026 9:14 AM</td><td><button class="btn btn-primary btn-sm">Clean</button></td></tr>
+        <tr><td>deal_q4.csv</td><td>1,240</td><td>May 18, 2026 3:02 PM</td><td><button class="btn btn-primary btn-sm">Clean</button></td></tr>
+        <tr><td>portfolio_rev.csv</td><td>892</td><td>May 15, 2026 11:30 AM</td><td><button class="btn btn-primary btn-sm">Clean</button></td></tr>
+      </tbody>
+    </table>
+    <div class="callouts">
+      <ol>
+        <li>Click <strong>Clean</strong> → navigates to <code>/clean/[datasetId]</code></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 3. Upload error -->
+  <section class="artboard" id="3">
+    <div class="meta">
+      <span><strong>3.</strong> File Explorer — Upload Error</span>
+      <span>Route: <code>/</code></span>
+    </div>
+    <header class="app-header">
+      <span class="app-title">Data Cleaning Tool</span>
+    </header>
+    <div class="banner error">Invalid value in row 3, period 202403: "N/A"</div>
+    <div class="upload-zone">Upload CSV</div>
+    <table class="data">
+      <thead><tr><th>Name</th><th>Rows</th><th>Uploaded</th><th></th></tr></thead>
+      <tbody>
+        <tr><td>sample.csv</td><td>5</td><td>May 20, 2026</td><td><button class="btn btn-primary btn-sm">Clean</button></td></tr>
+      </tbody>
+    </table>
+    <div class="callouts">
+      <ol>
+        <li>Inline error from server; list unchanged.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 4. Workspace Idle -->
+  <section class="artboard" id="4">
+    <div class="meta">
+      <span><strong>4.</strong> Workspace — Idle (2A)</span>
+      <span>Route: <code>/clean/[datasetId]</code></span>
+    </div>
+    <header class="app-header">
+      <span><a class="link">← Explorer</a> &nbsp; sample.csv</span>
+      <button type="button" class="audit-toggle" aria-label="Show or hide audit log" aria-pressed="false" title="Audit log">
+        <svg class="audit-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+          <rect x="9" y="3" width="6" height="4" rx="1"/>
+          <line x1="9" y1="12" x2="15" y2="12"/>
+          <line x1="9" y1="16" x2="13" y2="16"/>
+        </svg>
+        <span class="audit-toggle-label">Audit log</span>
+      </button>
+    </header>
+    <div class="workspace">
+      <aside class="sidebar">
+        <button type="button" class="anomaly-tab idle-hint">Negative<br>values<span class="badge">3</span></button>
+        <button type="button" class="anomaly-tab idle-hint">Refunds<span class="badge">1</span></button>
+        <button type="button" class="anomaly-tab idle-hint muted">Double<br>booking<span class="badge muted">0</span></button>
+      </aside>
+      <main class="main idle"><p class="idle-prompt">Select an anomaly to review</p></main>
+    </div>
+    <div class="callouts">
+      <ol>
+        <li><strong>Audit log</strong> toggle in header (clipboard icon + label) — sidebar hidden by default.</li>
+        <li>Three large tabs fill the sidebar column equally — none selected (idle).</li>
+        <li>Click a tab → Before | After tables (artboard 5).</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 5. Proposals — Before | After tables -->
+  <section class="artboard" id="5">
+    <div class="meta">
+      <span><strong>5.</strong> Workspace — Before | After (2B) · REVISED</span>
+      <span>Left = before + anomaly highlight · Right = after + fix highlight</span>
+    </div>
+    <header class="app-header">
+      <span><a class="link">← Explorer</a> &nbsp; sample.csv</span>
+      <button type="button" class="audit-toggle" aria-label="Show or hide audit log" aria-pressed="false" title="Audit log">
+        <svg class="audit-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+          <rect x="9" y="3" width="6" height="4" rx="1"/>
+          <line x1="9" y1="12" x2="15" y2="12"/>
+          <line x1="9" y1="16" x2="13" y2="16"/>
+        </svg>
+        <span class="audit-toggle-label">Audit log</span>
+      </button>
+    </header>
+    <div class="workspace">
+      <aside class="sidebar">
+        <button type="button" class="anomaly-tab active">Negative<br>values<span class="badge">3</span></button>
+        <button type="button" class="anomaly-tab">Refunds<span class="badge">1</span></button>
+        <button type="button" class="anomaly-tab muted">Double<br>booking<span class="badge muted">0</span></button>
+      </aside>
+      <main class="main">
+        <div class="main-header">
+          <div>
+            <h2>Negative values</h2>
+            <span class="sub">12 rows with issues</span>
+          </div>
+          <div class="toolbar">
+            <button class="btn btn-sm">Select all</button>
+            <button class="btn btn-sm">Select none</button>
+          </div>
+        </div>
+        <div class="compare-wrap">
+          <div class="compare-panels-row">
+          <div class="compare-panel before">
+            <div class="panel-title">BEFORE</div>
+            <div class="grid-wrap">
+              <table class="grid-table">
+                <thead>
+                  <tr>
+                    <th class="col-check">✓</th>
+                    <th class="col-dim">A</th>
+                    <th class="col-dim">B</th>
+                    <th class="col-dim">C</th>
+                    <th>202401</th>
+                    <th>202402</th>
+                    <th>202403</th>
+                    <th>202404</th>
+                    <th>202405</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="proposal-row row-checked">
+                    <td class="col-check"><input type="checkbox" checked disabled /></td>
+                    <td class="col-dim">Dog</td>
+                    <td class="col-dim">China</td>
+                    <td class="col-dim">Line</td>
+                    <td class="cell-normal">100</td>
+                    <td class="cell-anomaly">-200</td>
+                    <td class="cell-normal">0</td>
+                    <td class="cell-normal">50</td>
+                    <td class="cell-normal">30</td>
+                  </tr>
+                  <tr class="proposal-row">
+                    <td class="col-check"><input type="checkbox" disabled /></td>
+                    <td class="col-dim">Bird</td>
+                    <td class="col-dim">UK</td>
+                    <td class="col-dim">Online</td>
+                    <td class="cell-normal">200</td>
+                    <td class="cell-anomaly">-200</td>
+                    <td class="cell-normal">5</td>
+                    <td class="cell-normal">5</td>
+                    <td class="cell-normal">5</td>
+                  </tr>
+                  <tr class="proposal-row">
+                    <td class="col-check"><input type="checkbox" disabled /></td>
+                    <td class="col-dim">Dog</td>
+                    <td class="col-dim">Shine</td>
+                    <td class="col-dim">Lime</td>
+                    <td class="cell-normal">0</td>
+                    <td class="cell-normal">50</td>
+                    <td class="cell-anomaly">-100</td>
+                    <td class="cell-normal">25</td>
+                    <td class="cell-normal">10</td>
+                  </tr>
+                  <tr class="proposal-row">
+                    <td class="col-check"><input type="checkbox" disabled /></td>
+                    <td class="col-dim">Cat</td>
+                    <td class="col-dim">USA</td>
+                    <td class="col-dim">Retail</td>
+                    <td class="cell-normal">0</td>
+                    <td class="cell-normal">200</td>
+                    <td class="cell-anomaly">-200</td>
+                    <td class="cell-normal">10</td>
+                    <td class="cell-normal">10</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="compare-panel after">
+            <div class="panel-title">AFTER</div>
+            <div class="grid-wrap">
+              <table class="grid-table after-table">
+                <thead>
+                  <tr>
+                    <th class="col-dim">A</th>
+                    <th class="col-dim">B</th>
+                    <th class="col-dim">C</th>
+                    <th>202401</th>
+                    <th>202402</th>
+                    <th>202403</th>
+                    <th>202404</th>
+                    <th>202405</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="proposal-row row-checked">
+                    <td class="col-dim">Dog</td>
+                    <td class="col-dim">China</td>
+                    <td class="col-dim">Line</td>
+                    <td class="cell-normal">100</td>
+                    <td class="cell-fix">0</td>
+                    <td class="cell-normal">0</td>
+                    <td class="cell-normal">50</td>
+                    <td class="cell-normal">30</td>
+                  </tr>
+                  <tr class="proposal-row">
+                    <td class="col-dim">Bird</td>
+                    <td class="col-dim">UK</td>
+                    <td class="col-dim">Online</td>
+                    <td class="cell-normal">200</td>
+                    <td class="cell-fix">0</td>
+                    <td class="cell-normal">5</td>
+                    <td class="cell-normal">5</td>
+                    <td class="cell-normal">5</td>
+                  </tr>
+                  <tr class="proposal-row">
+                    <td class="col-dim">Dog</td>
+                    <td class="col-dim">Shine</td>
+                    <td class="col-dim">Lime</td>
+                    <td class="cell-normal">0</td>
+                    <td class="cell-normal">50</td>
+                    <td class="cell-fix">0</td>
+                    <td class="cell-normal">25</td>
+                    <td class="cell-normal">10</td>
+                  </tr>
+                  <tr class="proposal-row">
+                    <td class="col-dim">Cat</td>
+                    <td class="col-dim">USA</td>
+                    <td class="col-dim">Retail</td>
+                    <td class="cell-normal">0</td>
+                    <td class="cell-normal">200</td>
+                    <td class="cell-fix">0</td>
+                    <td class="cell-normal">10</td>
+                    <td class="cell-normal">10</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          </div>
+          <div class="list-end-marker">End of list — all 12 rows loaded</div>
+        </div>
+        <div class="submit-row">
+          <span class="legend">■ Left dark = anomaly (before) · ■ Right gray = proposed fix (after) · scroll loads more until end marker</span>
+          <button class="btn btn-primary">Submit</button>
+        </div>
+      </main>
+    </div>
+    <div class="callouts">
+      <ol>
+        <li>Same proposal rows in both tables; scroll stays in sync (implementation detail).</li>
+        <li>Checkbox lives on BEFORE table only — selects row for accept.</li>
+        <li>Infinite scroll for rows; show “Loading more…” only while fetching; then end marker when done.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 6. Empty tab -->
+  <section class="artboard" id="6">
+    <div class="meta">
+      <span><strong>6.</strong> Workspace — Empty Pattern (2C)</span>
+      <span>Route: <code>/clean/[datasetId]</code></span>
+    </div>
+    <header class="app-header">
+      <span><a class="link">← Explorer</a> &nbsp; sample.csv</span>
+      <button type="button" class="audit-toggle" aria-label="Show or hide audit log" aria-pressed="false" title="Audit log">
+        <svg class="audit-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+          <rect x="9" y="3" width="6" height="4" rx="1"/>
+          <line x1="9" y1="12" x2="15" y2="12"/>
+          <line x1="9" y1="16" x2="13" y2="16"/>
+        </svg>
+        <span class="audit-toggle-label">Audit log</span>
+      </button>
+    </header>
+    <div class="workspace">
+      <aside class="sidebar">
+        <button type="button" class="anomaly-tab">Negative<br>values<span class="badge muted">0</span></button>
+        <button type="button" class="anomaly-tab">Refunds<span class="badge muted">0</span></button>
+        <button type="button" class="anomaly-tab active muted">Double<br>booking<span class="badge muted">0</span></button>
+      </aside>
+      <main class="main">
+        <div class="main-header"><div><h2>Double booking</h2><span class="sub">0 rows</span></div></div>
+        <div class="empty-state">Nothing to clean for this pattern</div>
+      </main>
+    </div>
+  </section>
+
+  <!-- 7. Idle + success toast -->
+  <section class="artboard" id="7">
+    <div class="meta">
+      <span><strong>7.</strong> Workspace — Idle + Success Toast (2D)</span>
+      <span>After Submit with selections</span>
+    </div>
+    <header class="app-header">
+      <span><a class="link">← Explorer</a> &nbsp; sample.csv</span>
+      <button type="button" class="audit-toggle" aria-label="Show or hide audit log" aria-pressed="false" title="Audit log">
+        <svg class="audit-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+          <rect x="9" y="3" width="6" height="4" rx="1"/>
+          <line x1="9" y1="12" x2="15" y2="12"/>
+          <line x1="9" y1="16" x2="13" y2="16"/>
+        </svg>
+        <span class="audit-toggle-label">Audit log</span>
+      </button>
+    </header>
+    <div class="workspace">
+      <aside class="sidebar">
+        <button type="button" class="anomaly-tab idle-hint">Negative<br>values<span class="badge">1</span></button>
+        <button type="button" class="anomaly-tab idle-hint">Refunds<span class="badge muted">0</span></button>
+        <button type="button" class="anomaly-tab idle-hint muted">Double<br>booking<span class="badge muted">0</span></button>
+      </aside>
+      <main class="main idle has-toast">
+        <p class="idle-prompt">Select an anomaly to review</p>
+        <div class="toast-overlay" role="status" aria-live="polite">
+          <div class="toast-card">
+            <button type="button" class="toast-close" aria-label="Close">×</button>
+            <p class="toast-message">Applied 4 changes</p>
+            <p class="toast-timer">Closes in <strong>5</strong> seconds</p>
+          </div>
+        </div>
+      </main>
+    </div>
+    <div class="callouts">
+      <ol>
+        <li>Centered modal-style toast; idle prompt hidden while visible.</li>
+        <li>× dismisses immediately; otherwise auto-closes after 5s.</li>
+        <li>Variants: "Nothing changed" | "Applied N changes" | error copy.</li>
+        <li>Sidebar counts refreshed (3→1).</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 8. Audit sidebar open — with data -->
+  <section class="artboard" id="8">
+    <div class="meta">
+      <span><strong>8.</strong> Workspace — Audit Sidebar Open (with data)</span>
+      <span>Toggle on · infinite scroll · end of log shown</span>
+    </div>
+    <header class="app-header">
+      <span><a class="link">← Explorer</a> &nbsp; sample.csv</span>
+      <button type="button" class="audit-toggle" aria-label="Show or hide audit log" aria-pressed="true" title="Audit log">
+        <svg class="audit-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+          <rect x="9" y="3" width="6" height="4" rx="1"/>
+          <line x1="9" y1="12" x2="15" y2="12"/>
+          <line x1="9" y1="16" x2="13" y2="16"/>
+        </svg>
+        <span class="audit-toggle-label">Audit log</span>
+      </button>
+    </header>
+    <div class="workspace">
+      <aside class="sidebar">
+        <button type="button" class="anomaly-tab idle-hint">Negative<br>values<span class="badge">1</span></button>
+        <button type="button" class="anomaly-tab idle-hint">Refunds<span class="badge muted">0</span></button>
+        <button type="button" class="anomaly-tab idle-hint muted">Double<br>booking<span class="badge muted">0</span></button>
+      </aside>
+      <main class="main idle"><p class="idle-prompt">Select an anomaly to review</p></main>
+      <aside class="audit-sidebar">
+        <div class="audit-sidebar-header">
+          <span>Audit log</span>
+          <button type="button" class="btn btn-sm" aria-label="Hide audit log">×</button>
+        </div>
+        <div class="audit-sidebar-body">
+          <table>
+            <thead>
+              <tr><th>Time</th><th>Pattern</th><th>Row</th><th>Period</th><th>Before</th><th>After</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>2:14pm</td><td>neg.</td><td>Dog / China / Line</td><td>202402</td><td>-200</td><td>0</td></tr>
+              <tr><td>2:14pm</td><td>neg.</td><td>Bird / UK / Online</td><td>202402</td><td>-200</td><td>0</td></tr>
+              <tr><td>4:02pm</td><td>refund</td><td>Cat / USA / Retail</td><td>202403</td><td>-200</td><td>0</td></tr>
+              <tr><td>3:58pm</td><td>neg.</td><td>Dog / Shine / Lime</td><td>202403</td><td>-100</td><td>0</td></tr>
+              <tr><td>3:58pm</td><td>neg.</td><td>Cat / USA / Retail</td><td>202402</td><td>-200</td><td>0</td></tr>
+              <tr><td>11:02am</td><td>refund</td><td>Bird / UK / Online</td><td>202404</td><td>-50</td><td>0</td></tr>
+              <tr><td>11:02am</td><td>neg.</td><td>Dog / China / Line</td><td>202401</td><td>-80</td><td>0</td></tr>
+              <tr><td>May 19</td><td>dbl.</td><td>Cat / USA / Retail</td><td>202405</td><td>120</td><td>60</td></tr>
+            </tbody>
+          </table>
+          <div class="list-end-marker">End of audit log — all 47 changes loaded</div>
+        </div>
+        <div class="audit-sidebar-footer">Scroll up for newer entries</div>
+      </aside>
+    </div>
+    <div class="callouts">
+      <ol>
+        <li>Same toggle or × hides sidebar; main content expands.</li>
+        <li>Toggle shows clipboard icon + <strong>Audit log</strong> label; filled when open.</li>
+        <li>Infinite scroll — fetch on scroll; show “Loading more…” only while fetching; end marker when nothing left.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 9. Audit sidebar open — empty -->
+  <section class="artboard" id="9">
+    <div class="meta">
+      <span><strong>9.</strong> Workspace — Audit Sidebar Open (empty)</span>
+      <span>No changes yet</span>
+    </div>
+    <header class="app-header">
+      <span><a class="link">← Explorer</a> &nbsp; new_deal.csv</span>
+      <button type="button" class="audit-toggle" aria-label="Show or hide audit log" aria-pressed="true" title="Audit log">
+        <svg class="audit-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+          <rect x="9" y="3" width="6" height="4" rx="1"/>
+          <line x1="9" y1="12" x2="15" y2="12"/>
+          <line x1="9" y1="16" x2="13" y2="16"/>
+        </svg>
+        <span class="audit-toggle-label">Audit log</span>
+      </button>
+    </header>
+    <div class="workspace">
+      <aside class="sidebar">
+        <button type="button" class="anomaly-tab idle-hint">Negative<br>values</button>
+        <button type="button" class="anomaly-tab idle-hint">Refunds</button>
+        <button type="button" class="anomaly-tab idle-hint">Double<br>booking</button>
+      </aside>
+      <main class="main idle"><p class="idle-prompt">Select an anomaly to review</p></main>
+      <aside class="audit-sidebar">
+        <div class="audit-sidebar-header">
+          <span>Audit log</span>
+          <button type="button" class="btn btn-sm" aria-label="Hide audit log">×</button>
+        </div>
+        <div class="audit-sidebar-empty">No changes yet</div>
+      </aside>
+    </div>
+  </section>
+
+</body>
+</html>

@@ -30,6 +30,14 @@ router = APIRouter(prefix="/sessions", tags=["sessions"])
 @router.get(
     "/{session_id}/steps/{pattern}/proposals",
     response_model=ProposalsResponse,
+    summary="List proposals for a pattern",
+    description=(
+        "Runs the detector for the given pattern on the current working copy. "
+        "Returns a page of proposals and total_count across all rows. "
+        "Include session_updated_at in the accept request. "
+        "Patterns: negatives, refunds, double_booking."
+    ),
+    responses={404: {"description": "Session not found"}},
 )
 def list_proposals(
     session_id: UUID,
@@ -64,6 +72,17 @@ def list_proposals(
 @router.post(
     "/{session_id}/steps/{pattern}/accept",
     response_model=AcceptResponse,
+    summary="Accept selected proposals",
+    description=(
+        "Applies fixes for checked proposal_ids to cell_values and appends audit rows. "
+        "Empty proposal_ids returns changes: [] without cell updates. "
+        "Requires session_updated_at from the proposals response; returns 409 if stale."
+    ),
+    responses={
+        404: {"description": "Session not found"},
+        409: {"description": "session_updated_at mismatch — reload proposals"},
+        400: {"description": "Invalid proposal id"},
+    },
 )
 def accept_proposals(
     session_id: UUID,
@@ -95,7 +114,13 @@ def accept_proposals(
     return AcceptResponse(submit_id=result.submit_id, changes=result.changes)
 
 
-@router.get("/{session_id}/audit", response_model=AuditLogResponse)
+@router.get(
+    "/{session_id}/audit",
+    response_model=AuditLogResponse,
+    summary="List audit log",
+    description="Paginated cell-level change history for the session.",
+    responses={404: {"description": "Session not found"}},
+)
 def list_audit(
     session_id: UUID,
     limit: int = Query(10, ge=1),
