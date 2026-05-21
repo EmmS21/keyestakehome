@@ -128,16 +128,6 @@ export function ExplorerPage() {
         <h1 className="app-title" data-testid="explorer-title">
           Data Cleaning Tool
         </h1>
-        {showTable ? (
-          <button
-            type="button"
-            className="btn btn-sm"
-            onClick={openFilePicker}
-            disabled={uploading}
-          >
-            Upload CSV
-          </button>
-        ) : null}
       </header>
 
       {listError ? (
