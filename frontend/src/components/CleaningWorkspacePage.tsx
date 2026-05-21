@@ -522,9 +522,6 @@ export function CleaningWorkspacePage({ datasetId }: Props) {
           aria-label={auditOpen ? "Hide audit log" : "Show audit log"}
           onClick={() => setAuditOpen((o) => !o)}
         >
-          <span className="audit-toggle-icon" aria-hidden>
-            📋
-          </span>
           <span className="audit-toggle-label">Audit log</span>
         </button>
       </header>
