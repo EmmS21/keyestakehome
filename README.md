@@ -15,6 +15,12 @@ Take-home: upload deal revenue grids, review anomaly proposals (negatives → re
 
 Deal grids are **large and wide** (many rows × many period columns). The full grid stays on the server; the browser gets paginated proposals and audit entries only.
 
+### Scope (v1)
+
+**In scope:** one session per dataset; cell-level audit; merged audit timeline (alterations + CSV exports, filterable); export with version snapshot; optimistic concurrency on accept (`409` when proposals are stale); proposals recomputed from `cell_values` after each change.
+
+**Not in scope:** auth or analyst identity on audit/export; undo; cross-row rules; configurable detectors; full grid in the browser; job queues or proposal cache tables.
+
 ### Anomaly patterns (from brief)
 
 | Pattern | Detection | Fix |
@@ -106,6 +112,6 @@ keyestakehome/
 - Upload and clean without prior knowledge of which anomalies exist.
 - Highlighted before/after proposals per pattern (paginated; `total_count` visible).
 - Select all / none / subset and submit; empty submit leaves working copy unchanged.
-- Demonstrate ordering effect (e.g. accepting negatives can reduce refund proposals).
-- Return later with persisted working copy and readable audit log.
-- Export working copy with export events for version tracing.
+- Accepted fixes update the working copy so other patterns’ proposal counts can change.
+- Return later with persisted working copy, pattern badges, and audit timeline (E2E: reload and new browser context).
+- Export working copy; each download recorded and visible in the audit timeline.

@@ -28,6 +28,8 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
+Coverage includes: explorer upload and navigation, workspace patterns/submit/audit, session resume after reload and in a new browser context. Helpers live in `e2e/helpers.ts`.
+
 ## Layout
 
 | Path | Purpose |

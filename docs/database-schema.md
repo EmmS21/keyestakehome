@@ -167,10 +167,10 @@ flowchart LR
 |---------|--------------|-------------------|
 | Which tab is open | No | `activePattern` (nullable) |
 | Which patterns have issues | No (computed) | `patternCounts` from `GET .../proposals` `total_count` |
-| Checkbox selection | No | Per active pattern |
+| Checkbox selection | No | `localStorage` per dataset + pattern (see `workspace-storage.ts`) |
+| Audit filter (`all` / `alteration` / `download`) | No | `auditFilter` in workspace state |
 | Working cell values | `cell_values` | — |
-| Change history | `audit_log_entries` | — |
-| CSV downloads | `export_events` | — |
+| Change history | `audit_log_entries` + `export_events` | Merged via `GET .../audit` |
 
 ## API models
 
@@ -202,6 +202,7 @@ classDiagram
 
   class AcceptRequest {
     proposal_ids
+    session_updated_at
   }
 
   class AppliedCellChange {
